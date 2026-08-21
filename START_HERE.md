@@ -1,30 +1,21 @@
 # START HERE
 
-Project: **SIH problem #48 — AI-Driven LCA Tool for Metallurgy & Mining**
-Team: 3 people, 3 separate laptops, near-zero merge conflicts if you follow the rules below.
+Project: **SIH #48 — AI-Driven LCA Tool for Metallurgy & Mining**
+Current phase: **INTERNAL ROUND — clickable prototype + PPT only.** (Full product plan is parked in `docs/archive/` for the finale.)
 
-> NOTE FOR AI ASSISTANTS: If you are an AI helping one of the team members, read the files in the exact order below, then follow ONLY that person's role file, task by task, in order. Do not skip tasks. Do not edit files outside that person's ALLOWED folders.
+## Read in this order
 
-## Step 1 — Find your file
+1. `prototype/PROTOTYPE_PLAN.md` — what we are building, build order, review checklist, demo script
+2. `prototype/DESIGN.md` — the Indian light theme: colors, fonts, gradients, anti-AI-slop rules
+3. `prototype/SCREENS.md` — every screen, section by section, with exact text to put on it
+4. `prototype/DATA_SPEC.md` — the mini calculator: factor numbers, formulas, expected outputs
+5. `PPT_CONTENT.md` — slide-by-slide content for the idea PPT
 
-| Name | Role | Your instruction file |
-|---|---|---|
-| Ritesh | LCA Engine + Data (the correct numbers) | `docs/RITESH_engine_data.md` |
-| Harsh | AI/ML + LLM (the intelligence) | `docs/HARSH_ai_ml.md` |
-| Gaurav | Frontend + API + Reports + Deploy (the product) | `docs/GAURAV_frontend_api.md` |
+## Rules for this phase
 
-## Step 2 — Reading order (everyone, once)
+- Prototype = plain HTML + CSS + JS files. No frameworks, no build step, no backend, no ML. Opens by double-clicking `index.html`.
+- All numbers come from `prototype/DATA_SPEC.md` — never invent a number anywhere else.
+- All visual decisions come from `prototype/DESIGN.md` — never freestyle colors or fonts.
+- The archived plan in `docs/archive/` is NOT deleted — it becomes the build plan if we clear the internal round.
 
-1. `docs/SETUP.md` — install tools on your laptop (~30 min)
-2. `docs/GIT_WORKFLOW.md` — how we use git. Memorize the DAILY ROUTINE section.
-3. `docs/CONTRACTS.md` — the shared schemas and function signatures. NEVER change this file without agreement from all 3 in the group chat.
-4. `PLAN.md` — the big picture (scope, timeline, milestones).
-5. Your personal file from the table above. Do the tasks in order.
-
-## The 3 golden rules
-
-1. **Only edit files inside YOUR folders.** Your role file lists exactly which folders are yours (ALLOWED) and which are forbidden.
-2. **Never change `docs/CONTRACTS.md` or `backend/app/schemas/`** without a group-chat agreement. These are the interfaces everyone codes against.
-3. **Every day, before you start working**, run the DAILY ROUTINE commands from `docs/GIT_WORKFLOW.md` (pull main, merge into your branch).
-
-Follow these 3 rules and the three of you will almost never see a merge conflict.
+> NOTE FOR AI ASSISTANTS: build exactly what `SCREENS.md` + `DESIGN.md` + `DATA_SPEC.md` specify. Do not add pages, sections, colors, or numbers that are not in these files.

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compare routes — DhatuChakra</title>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="chakra-mark" data-size="24"></span>
+      <span class="word">DhatuChakra</span><span class="dev">धातुचक्र</span>
+    </a>
+    <nav class="nav">
+      <a href="assess.html">Assess</a>
+      <a href="results.html">Results</a>
+      <a href="compare.html" class="active">Compare</a>
+      <a href="report.html">Report</a>
+    </nav>
+  </div>
+</header>
+<div class="flag-band"><span></span><span></span><span></span></div>
+
+<main class="wrap">
+  <div class="row between mt-40" style="flex-wrap:wrap;gap:16px">
+    <h2 id="title">Linear vs Circular</h2>
+    <a class="btn btn-secondary" href="report.html">Open report</a>
+  </div>
+
+  <!-- Control bar -->
+  <div class="card mt-24">
+    <div class="grid-3">
+      <div>
+        <label class="field-label">Recycled content</label>
+        <div class="slider-row">
+          <input type="range" id="r" min="0" max="100" step="1">
+          <span class="slider-val" id="rVal">0%</span>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">End-of-life recovery</label>
+        <div class="slider-row">
+          <input type="range" id="cr" min="0" max="100" step="1">
+          <span class="slider-val" id="crVal">0%</span>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Renewable electricity</label>
+        <div class="slider-row">
+          <input type="range" id="s" min="0" max="100" step="1">
+          <span class="slider-val" id="sVal">0%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-1-1 mt-24">
+    <div class="card">
+      <div class="row between">
+        <h3>Today — Linear</h3><span class="chip">baseline</span>
+      </div>
+      <div class="scen-kpis">
+        <div>
+          <p class="gwp-big" id="baseGwp">—</p>
+          <p class="small">t CO₂e / t</p>
+        </div>
+        <p class="minis" id="baseMinis"></p>
+        <div id="baseGauge" style="margin-left:auto"></div>
+      </div>
+    </div>
+    <div class="card" style="border-color:var(--saffron)">
+      <div class="row between">
+        <h3>With circularity — Yours</h3><span class="chip saffron">live</span>
+      </div>
+      <div class="scen-kpis">
+        <div>
+          <p class="gwp-big" id="curGwp">—</p>
+          <p class="small">t CO₂e / t</p>
+        </div>
+        <p class="minis" id="curMinis"></p>
+        <div id="curGauge" style="margin-left:auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="delta-strip mt-24">
+    <p class="big" id="deltaBig">—</p>
+    <p class="line2" id="deltaLine"></p>
+    <p class="human" id="humanLine"></p>
+  </div>
+
+  <div class="grid-3 mt-24" id="recs"></div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap inner">
+    <p>Built for Smart India Hackathon · Problem #48 · Ministry of Mines</p>
+    <span class="chakra-mark" data-size="18"></span>
+    <p>Data sources:
+      <a href="https://international-aluminium.org" target="_blank" rel="noopener">IAI</a> ·
+      <a href="https://worldsteel.org" target="_blank" rel="noopener">worldsteel</a> ·
+      <a href="https://cea.nic.in" target="_blank" rel="noopener">CEA</a> ·
+      <a href="https://eplca.jrc.ec.europa.eu" target="_blank" rel="noopener">EF 3.1</a> ·
+      <a href="https://www.idematapp.com" target="_blank" rel="noopener">IDEMAT</a></p>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/ui.js"></script>
+<script>
+(function () {
+  const st = DC.loadState();
+  const base = Object.assign({}, st, st.baseline || {});   /* locked baseline */
+  const baseOut = DC.compute(base);
+
+  DC.$("#title").textContent = DC.scenarioTitle(st).split(" · ")[0] + " — Linear vs Circular";
+
+  /* baseline card (static) */
+  DC.$("#baseGwp").textContent = DC.sig3(DC.tonnes(baseOut.gwp));
+  DC.$("#baseMinis").innerHTML =
+    "Energy " + DC.sig3(baseOut.energy) + " GJ/t<br>Water " + DC.sig3(baseOut.water) + " m³/t";
+  DC.gauge(DC.$("#baseGauge"), baseOut.mci, 84);
+
+  /* sliders start at baseline */
+  const sliders = { r: DC.$("#r"), cr: DC.$("#cr"), s: DC.$("#s") };
+  sliders.r.value = Math.round(base.r * 100);
+  sliders.cr.value = Math.round(base.cr * 100);
+  sliders.s.value = Math.round(base.s * 100);
+
+  function update() {
+    st.r = parseInt(sliders.r.value, 10) / 100;
+    st.cr = parseInt(sliders.cr.value, 10) / 100;
+    st.s = parseInt(sliders.s.value, 10) / 100;
+    DC.$("#rVal").textContent = sliders.r.value + "%";
+    DC.$("#crVal").textContent = sliders.cr.value + "%";
+    DC.$("#sVal").textContent = sliders.s.value + "%";
+
+    const cur = DC.compute(st);
+    DC.$("#curGwp").textContent = DC.sig3(DC.tonnes(cur.gwp));
+    DC.$("#curMinis").innerHTML =
+      "Energy " + DC.sig3(cur.energy) + " GJ/t<br>Water " + DC.sig3(cur.water) + " m³/t";
+    DC.gauge(DC.$("#curGauge"), cur.mci, 84);
+
+    const saveT = DC.tonnes(baseOut.gwp - cur.gwp);
+    const pct = baseOut.gwp ? Math.round((baseOut.gwp - cur.gwp) / baseOut.gwp * 100) : 0;
+    const big = DC.$("#deltaBig");
+    if (saveT >= 0) {
+      big.textContent = "− " + DC.sig3(saveT) + " t CO₂e per tonne";
+      big.className = "big good";
+      DC.$("#deltaLine").textContent = "− " + pct + "% emissions · MCI " +
+        baseOut.mci.toFixed(2) + " → " + cur.mci.toFixed(2);
+    } else {
+      big.textContent = "+ " + DC.sig3(-saveT) + " t CO₂e per tonne";
+      big.className = "big worse";
+      DC.$("#deltaLine").textContent = "+ " + (-pct) + "% emissions · MCI " +
+        baseOut.mci.toFixed(2) + " → " + cur.mci.toFixed(2);
+    }
+    DC.$("#humanLine").textContent = DC.scrapSentence(st);
+
+    DC.$("#recs").innerHTML = DC.recommend(st).map(r => `
+      <div class="card rec">
+        <h3>${r.title}</h3>
+        <p>${r.text}</p>
+        <span class="chip ${r.prio === "high" ? "saffron" : ""}">${r.prio}</span>
+      </div>`).join("");
+
+    DC.saveState(st);
+  }
+
+  Object.values(sliders).forEach(el => el.addEventListener("input", update));
+  update();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New assessment — DhatuChakra</title>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="chakra-mark" data-size="24"></span>
+      <span class="word">DhatuChakra</span><span class="dev">धातुचक्र</span>
+    </a>
+    <nav class="nav">
+      <a href="assess.html" class="active">Assess</a>
+      <a href="results.html">Results</a>
+      <a href="compare.html">Compare</a>
+      <a href="report.html">Report</a>
+    </nav>
+  </div>
+</header>
+<div class="flag-band"><span></span><span></span><span></span></div>
+
+<main class="wrap">
+  <h2 class="mt-40">New assessment</h2>
+
+  <div class="grid-62-38 mt-24">
+    <!-- Form card -->
+    <div class="card">
+      <h3>Assessment inputs</h3>
+
+      <div class="form-row">
+        <label class="field-label" for="metal">Metal</label>
+        <select id="metal">
+          <option value="aluminium">Aluminium</option>
+          <option value="steel">Steel</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label class="field-label">Route</label>
+        <div class="segmented" id="routeSeg"></div>
+      </div>
+
+      <div class="form-row">
+        <label class="field-label" for="region">Region / grid</label>
+        <select id="region"></select>
+      </div>
+
+      <div class="form-row">
+        <label class="field-label">Recycled content</label>
+        <div class="slider-row">
+          <input type="range" id="r" min="0" max="100" step="1">
+          <span class="slider-val" id="rVal">0%</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="field-label">End-of-life recovery</label>
+        <div class="slider-row">
+          <input type="range" id="cr" min="0" max="100" step="1">
+          <span class="slider-val" id="crVal">0%</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="field-label">Renewable share in electricity</label>
+        <div class="slider-row">
+          <input type="range" id="s" min="0" max="100" step="1">
+          <span class="slider-val" id="sVal">0%</span>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:22px 0 14px">
+      <h3 style="font-size:16px;margin-bottom:2px">Process detail</h3>
+      <p class="small" style="margin-bottom:14px">Filled from our factor library — edit anything.</p>
+
+      <div class="detail-row">
+        <span class="name">Electricity use</span>
+        <input type="number" id="elec" min="0" step="10">
+        <span class="u">kWh/t</span>
+        <span class="badge" id="elecBadge">estimated · 78%</span>
+      </div>
+      <div class="detail-row">
+        <span class="name">Thermal energy</span>
+        <input type="number" id="thermal" min="0" step="100">
+        <span class="u">MJ/t</span>
+        <span class="badge" id="thermalBadge">estimated · 71%</span>
+      </div>
+      <div class="detail-row">
+        <span class="name">Transport</span>
+        <input type="number" id="transport" min="0" step="10">
+        <span class="u">t·km</span>
+        <span class="badge" id="transportBadge">estimated · 64%</span>
+      </div>
+
+      <button class="btn btn-primary btn-block mt-16" id="computeBtn">Compute assessment →</button>
+    </div>
+
+    <!-- Smart entry card -->
+    <div class="card" style="align-self:start">
+      <h3>Or just describe it</h3>
+      <textarea id="nlText" placeholder="e.g. aluminium smelter in Odisha, about 40% scrap, mostly coal grid"></textarea>
+      <button class="btn btn-secondary mt-16" id="parseBtn">Read my description</button>
+      <div class="mt-16" id="chips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      <p class="small mt-16">In the full build this is an LLM parser; the prototype matches key phrases.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap inner">
+    <p>Built for Smart India Hackathon · Problem #48 · Ministry of Mines</p>
+    <span class="chakra-mark" data-size="18"></span>
+    <p>Data sources:
+      <a href="https://international-aluminium.org" target="_blank" rel="noopener">IAI</a> ·
+      <a href="https://worldsteel.org" target="_blank" rel="noopener">worldsteel</a> ·
+      <a href="https://cea.nic.in" target="_blank" rel="noopener">CEA</a> ·
+      <a href="https://eplca.jrc.ec.europa.eu" target="_blank" rel="noopener">EF 3.1</a> ·
+      <a href="https://www.idematapp.com" target="_blank" rel="noopener">IDEMAT</a></p>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/ui.js"></script>
+<script>
+(function () {
+  let st = DC.loadState();
+
+  const $metal = DC.$("#metal"), $region = DC.$("#region"), $seg = DC.$("#routeSeg");
+  const $r = DC.$("#r"), $cr = DC.$("#cr"), $s = DC.$("#s");
+  const $elec = DC.$("#elec"), $thermal = DC.$("#thermal"), $transport = DC.$("#transport");
+
+  /* region options with the factor visible */
+  $region.innerHTML = Object.entries(DC.GRID)
+    .map(([k, v]) => `<option value="${k}">${v.label}</option>`).join("");
+
+  function routeOf() { /* linear|circular from routeKey */
+    return st.routeKey === DC.ROUTES[st.metal].circular.key ? "circular" : "linear";
+  }
+
+  function fillDefaults(keepOverride) {
+    const rs = DC.ROUTES[st.metal];
+    const blend = (a, b) => Math.round((1 - st.r) * a + st.r * b);
+    if (!keepOverride) {
+      st.elecOverride = null;
+      $elec.value = blend(rs.linear.elec_kWh, rs.circular.elec_kWh);
+      setBadge("elec", false);
+    }
+    $thermal.value = blend(DC.THERMAL_MJ[st.metal].linear, DC.THERMAL_MJ[st.metal].circular);
+    $transport.value = DC.TRANSPORT_TKM;
+  }
+
+  function setBadge(id, edited) {
+    const el = DC.$("#" + id + "Badge");
+    if (edited) { el.textContent = "you"; el.classList.add("you"); }
+    else {
+      el.classList.remove("you");
+      el.textContent = { elec: "estimated · 78%", thermal: "estimated · 71%", transport: "estimated · 64%" }[id];
+    }
+  }
+
+  function render() {
+    $metal.value = st.metal;
+    $region.value = st.region;
+    const rs = DC.ROUTES[st.metal];
+    $seg.innerHTML =
+      `<button data-k="${rs.linear.key}" class="${routeOf() === "linear" ? "on" : ""}">${rs.linear.name}</button>` +
+      `<button data-k="${rs.circular.key}" class="${routeOf() === "circular" ? "on" : ""}">${rs.circular.name}</button>`;
+    $r.value = Math.round(st.r * 100); DC.$("#rVal").textContent = Math.round(st.r * 100) + "%";
+    $cr.value = Math.round(st.cr * 100); DC.$("#crVal").textContent = Math.round(st.cr * 100) + "%";
+    $s.value = Math.round(st.s * 100); DC.$("#sVal").textContent = Math.round(st.s * 100) + "%";
+    fillDefaults(st.elecOverride != null);
+    if (st.elecOverride != null) { $elec.value = st.elecOverride; setBadge("elec", true); }
+    if (DC.repaintRanges) DC.repaintRanges();
+  }
+
+  /* events */
+  $metal.addEventListener("change", () => {
+    st.metal = $metal.value;
+    st.routeKey = DC.ROUTES[st.metal].linear.key;
+    st.r = 0; st.elecOverride = null;
+    render();
+  });
+  $seg.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    st.routeKey = b.dataset.k;
+    st.r = (routeOf() === "circular") ? 1 : 0;   /* route choice sets the sensible default */
+    st.elecOverride = null;
+    render();
+  });
+  $region.addEventListener("change", () => { st.region = $region.value; });
+  function slider(el, valEl, key) {
+    el.addEventListener("input", () => {
+      st[key] = parseInt(el.value, 10) / 100;
+      DC.$(valEl).textContent = el.value + "%";
+      if (key === "r") fillDefaults(st.elecOverride != null);
+    });
+  }
+  slider($r, "#rVal", "r"); slider($cr, "#crVal", "cr"); slider($s, "#sVal", "s");
+
+  $elec.addEventListener("input", () => { st.elecOverride = parseFloat($elec.value); setBadge("elec", true); });
+  $thermal.addEventListener("input", () => setBadge("thermal", true));
+  $transport.addEventListener("input", () => setBadge("transport", true));
+
+  DC.$("#parseBtn").addEventListener("click", () => {
+    const res = DC.parseText(DC.$("#nlText").value, st);
+    st = res.state;
+    render();
+    DC.$("#chips").innerHTML = res.chips.map(c =>
+      `<span class="chip ${c.ok ? "green" : "saffron"}">${c.label}</span>`).join("");
+  });
+
+  DC.$("#computeBtn").addEventListener("click", () => {
+    st.baseline = { r: st.r, cr: st.cr, s: st.s };
+    DC.saveState(st);
+    location.href = "results.html";
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

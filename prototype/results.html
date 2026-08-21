@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Results — DhatuChakra</title>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="chakra-mark" data-size="24"></span>
+      <span class="word">DhatuChakra</span><span class="dev">धातुचक्र</span>
+    </a>
+    <nav class="nav">
+      <a href="assess.html">Assess</a>
+      <a href="results.html" class="active">Results</a>
+      <a href="compare.html">Compare</a>
+      <a href="report.html">Report</a>
+    </nav>
+  </div>
+</header>
+<div class="flag-band"><span></span><span></span><span></span></div>
+
+<main class="wrap">
+  <div class="row between mt-40" style="flex-wrap:wrap;gap:16px">
+    <h2 id="title">—</h2>
+    <div class="row">
+      <a class="btn btn-secondary" href="report.html">Open report</a>
+      <a class="btn btn-primary" href="compare.html">Compare routes →</a>
+    </div>
+  </div>
+
+  <div class="grid-4 mt-24" id="kpis"></div>
+
+  <div class="grid-2-1 mt-24">
+    <div class="stack">
+      <div class="card">
+        <h3>Where it comes from</h3>
+        <div id="stageBar"></div>
+      </div>
+      <div class="card">
+        <h3>Material flow</h3>
+        <div id="sankey"></div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card center">
+        <h3 style="text-align:left">Circularity</h3>
+        <div id="gauge"></div>
+        <p class="small mt-8" style="letter-spacing:.05em;text-transform:uppercase">Material Circularity Indicator</p>
+        <p class="mt-8" id="mciSentence" style="font-size:14.5px;text-align:left"></p>
+      </div>
+      <div class="card">
+        <h3>Data provenance</h3>
+        <table class="plain" id="provTable">
+          <thead><tr><th>Factor</th><th>Source</th><th>Year</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="small mt-16">Every figure above traces to these published factors.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap inner">
+    <p>Built for Smart India Hackathon · Problem #48 · Ministry of Mines</p>
+    <span class="chakra-mark" data-size="18"></span>
+    <p>Data sources:
+      <a href="https://international-aluminium.org" target="_blank" rel="noopener">IAI</a> ·
+      <a href="https://worldsteel.org" target="_blank" rel="noopener">worldsteel</a> ·
+      <a href="https://cea.nic.in" target="_blank" rel="noopener">CEA</a> ·
+      <a href="https://eplca.jrc.ec.europa.eu" target="_blank" rel="noopener">EF 3.1</a> ·
+      <a href="https://www.idematapp.com" target="_blank" rel="noopener">IDEMAT</a></p>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/ui.js"></script>
+<script>
+(function () {
+  const st = DC.loadState();
+  const out = DC.compute(st);
+
+  DC.$("#title").textContent = DC.scenarioTitle(st);
+
+  const kpis = [
+    { label: "Global warming", val: DC.tonnes(out.gwp), unit: "t CO₂e / t", cls: "accent" },
+    { label: "Energy demand", val: out.energy, unit: "GJ / t", cls: "" },
+    { label: "Water use", val: out.water, unit: "m³ / t", cls: "" },
+    { label: "Acidification", val: out.acid, unit: "kg SO₂e / t", cls: "" },
+  ];
+  DC.$("#kpis").innerHTML = kpis.map(k => `
+    <div class="card kpi ${k.cls}">
+      <p class="label">${k.label}</p>
+      <p class="value">${DC.sig3(k.val)}<span class="unit">${k.unit}</span></p>
+      <p class="range">${DC.range(k.val)}</p>
+    </div>`).join("");
+
+  DC.stageBar(DC.$("#stageBar"), out.stages, out.gwp);
+  DC.sankey(DC.$("#sankey"), st);
+  DC.gauge(DC.$("#gauge"), out.mci, 180);
+  DC.$("#mciSentence").textContent = DC.mciSentence(out.mci);
+
+  DC.$("#provTable tbody").innerHTML = DC.PROVENANCE.filter(p => p.show(st)).map(p => `
+    <tr><td>${p.factor}</td>
+        <td class="src"><a href="${p.url}" target="_blank" rel="noopener">${p.source}</a></td>
+        <td>${p.year}</td></tr>`).join("");
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DhatuChakra — हर टन का हिसाब</title>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="css/theme.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="chakra-mark" data-size="24"></span>
+      <span class="word">DhatuChakra</span><span class="dev">धातुचक्र</span>
+    </a>
+    <nav class="nav">
+      <a href="assess.html">Assess</a>
+      <a href="results.html">Results</a>
+      <a href="compare.html">Compare</a>
+      <a href="report.html">Report</a>
+    </nav>
+  </div>
+</header>
+<div class="flag-band"><span></span><span></span><span></span></div>
+
+<section class="hero">
+  <div class="wrap inner">
+    <div>
+      <h1>हर टन का हिसाब।</h1>
+      <p class="sub">Every tonne, accounted for. Life-cycle assessment and circularity scoring for Indian metals — in minutes, not months.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="assess.html">Start an assessment</a>
+        <a class="btn btn-secondary" href="results.html" id="sampleBtn">See a sample result</a>
+      </div>
+      <p class="small quiet">Aluminium · Steel — cradle-to-gate · MCI · uncertainty included</p>
+    </div>
+    <div class="watermark chakra-mark" data-size="300"></div>
+  </div>
+</section>
+
+<main class="wrap">
+  <section class="mt-40">
+    <div class="grid-4" id="presets"></div>
+  </section>
+
+  <section class="mt-64">
+    <div class="grid-3 steps">
+      <div class="step">
+        <span class="n">1</span>
+        <h3>Describe your process</h3>
+        <p>Five inputs, or one plain sentence. Missing values are estimated and clearly marked.</p>
+      </div>
+      <div class="step">
+        <span class="n">2</span>
+        <h3>See the full picture</h3>
+        <p>Emissions, energy, water and acidification per tonne — with ranges, stage by stage, source by source.</p>
+      </div>
+      <div class="step">
+        <span class="n">3</span>
+        <h3>Close the loop</h3>
+        <p>Drag the scrap slider. Watch the Chakra fill. Get a report you can act on.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap inner">
+    <p>Built for Smart India Hackathon · Problem #48 · Ministry of Mines</p>
+    <span class="chakra-mark" data-size="18"></span>
+    <p>Data sources:
+      <a href="https://international-aluminium.org" target="_blank" rel="noopener">IAI</a> ·
+      <a href="https://worldsteel.org" target="_blank" rel="noopener">worldsteel</a> ·
+      <a href="https://cea.nic.in" target="_blank" rel="noopener">CEA</a> ·
+      <a href="https://eplca.jrc.ec.europa.eu" target="_blank" rel="noopener">EF 3.1</a> ·
+      <a href="https://www.idematapp.com" target="_blank" rel="noopener">IDEMAT</a></p>
+  </div>
+</footer>
+
+<script src="js/data.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/ui.js"></script>
+<script>
+(function () {
+  const wrap = DC.$("#presets");
+  wrap.innerHTML = DC.PRESETS.map(p => {
+    const st = { metal: p.metal, region: p.region, r: p.r, cr: p.cr, s: p.s, elecOverride: null };
+    const gwpT = DC.tonnes(DC.compute(st).gwp);
+    const chipCls = p.chip === "circular" ? "chip green" : "chip";
+    return `<div class="card preset" data-id="${p.id}">
+      <h3>${p.title}</h3>
+      <p class="route">${p.sub}</p>
+      <p class="num">${DC.sig3(gwpT)} <small>t CO₂e / t</small></p>
+      <p class="mt-8"><span class="${chipCls}">${p.chip}</span></p>
+    </div>`;
+  }).join("");
+  wrap.addEventListener("click", e => {
+    const card = e.target.closest(".preset");
+    if (!card) return;
+    DC.applyPreset(parseInt(card.dataset.id, 10));
+    location.href = "results.html";
+  });
+  DC.$("#sampleBtn").addEventListener("click", () => DC.applyPreset(1));
+})();
+</script>
+</body>
+</html>

@@ -21,7 +21,7 @@ Fill the template fields exactly:
 ## SLIDE 2 — IDEA TITLE / PROPOSED SOLUTION
 
 **Idea title (top of slide):**
-> **CircuLCA — AI-powered Life Cycle Assessment & Circularity engine for metals**
+> **DhatuChakra (धातुचक्र) — AI-powered Life Cycle Assessment & Circularity engine for metals**
 
 **Proposed Solution (bullets):**
 - Web platform that computes full cradle-to-gate/grave LCA for metals (aluminium, steel) — GWP, energy, water, acidification per tonne
