@@ -6,6 +6,30 @@
 <title>New assessment - DhatuChakra</title>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <link rel="stylesheet" href="css/theme.css">
+<style>
+/* Map overlay */
+.map-overlay{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:rgba(28,43,58,.55);backdrop-filter:blur(4px);opacity:0;transition:opacity .25s ease;}
+.map-overlay.open{display:flex;opacity:1;}
+.map-modal{background:#fff;border-radius:14px;width:min(720px,92vw);max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);transform:scale(.92);transition:transform .25s ease;padding:28px;}
+.map-overlay.open .map-modal{transform:scale(1);}
+.map-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.map-modal-head h3{margin:0;font-size:18px;}
+.map-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-soft);padding:4px 8px;border-radius:6px;}
+.map-close:hover{background:#f1f5f9;}
+
+/* Map preview thumb */
+.map-thumb{margin:4px 0 12px;padding:12px;background:#fafbfc;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:border-color .2s,box-shadow .2s;}
+.map-thumb:hover{border-color:#94a3b8;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.map-thumb-inner{height:110px;overflow:hidden;border-radius:6px;pointer-events:none;opacity:.7;}
+.map-thumb-inner svg{width:100%;height:100%;}
+.map-thumb-label{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;font-size:12px;color:var(--navy);font-weight:500;}
+.map-thumb-label svg{width:14px;height:14px;}
+
+/* Input mode toggle */
+.mode-toggle{display:flex;background:#f1f5f9;border-radius:8px;padding:3px;margin-bottom:20px;gap:2px;}
+.mode-toggle button{flex:1;padding:8px 0;border:none;background:none;font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--ink-soft);cursor:pointer;border-radius:6px;transition:all .2s;}
+.mode-toggle button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:600;}
+</style>
 </head>
 <body class="app-page assess-page">
 
@@ -46,69 +70,89 @@
   <div class="grid-62-38">
     <section class="card">
       <p class="section-title">Scenario inputs</p>
-      <h3>Assessment inputs</h3>
 
-      <div class="form-row mt-16">
-        <label class="field-label" for="metal">Metal</label>
-        <select id="metal">
-          <option value="aluminium">Aluminium</option>
-          <option value="steel">Steel</option>
-        </select>
+      <!-- MODE TOGGLE -->
+      <div class="mode-toggle" id="modeToggle">
+        <button data-mode="form" class="on">⚙️ Form inputs</button>
+        <button data-mode="describe">💬 Describe it</button>
       </div>
 
-      <div class="form-row">
-        <label class="field-label">Route</label>
-        <div class="segmented" id="routeSeg"></div>
-      </div>
+      <!-- === FORM MODE === -->
+      <div id="formMode">
+        <div class="form-row">
+          <label class="field-label" for="metal">Metal</label>
+          <select id="metal">
+            <option value="aluminium">Aluminium</option>
+            <option value="steel">Steel</option>
+          </select>
+        </div>
 
-      <div class="form-row">
-        <label class="field-label" for="region">Region / grid</label>
-        <select id="region"></select>
-      </div>
+        <div class="form-row">
+          <label class="field-label">Route</label>
+          <div class="segmented" id="routeSeg"></div>
+        </div>
 
-      <div class="form-row">
-        <label class="field-label">Recycled content</label>
-        <div class="slider-row">
-          <input type="range" id="r" min="0" max="100" step="1">
-          <span class="slider-val" id="rVal">0%</span>
+        <div class="form-row">
+          <label class="field-label" for="region">Region / grid</label>
+          <select id="region"></select>
+        </div>
+
+        <div class="form-row">
+          <label class="field-label">Recycled content</label>
+          <div class="slider-row">
+            <input type="range" id="r" min="0" max="100" step="1">
+            <span class="slider-val" id="rVal">0%</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="field-label">End-of-life recovery</label>
+          <div class="slider-row">
+            <input type="range" id="cr" min="0" max="100" step="1">
+            <span class="slider-val" id="crVal">0%</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="field-label">Renewable share in electricity</label>
+          <div class="slider-row">
+            <input type="range" id="s" min="0" max="100" step="1">
+            <span class="slider-val" id="sVal">0%</span>
+          </div>
+        </div>
+
+        <hr class="input-divider">
+        <p class="section-title">Process detail</p>
+        <p class="small mt-8">Filled from the factor library. Edit any line when site data is available.</p>
+
+        <div class="detail-row mt-16">
+          <span class="name">Electricity use</span>
+          <input type="number" id="elec" min="0" step="10">
+          <span class="u">kWh/t</span>
+          <span class="badge" id="elecBadge">estimated - 78%</span>
+        </div>
+        <div class="detail-row">
+          <span class="name">Thermal energy</span>
+          <input type="number" id="thermal" min="0" step="100">
+          <span class="u">MJ/t</span>
+          <span class="badge" id="thermalBadge">estimated - 71%</span>
+        </div>
+        <div class="detail-row">
+          <span class="name">Transport</span>
+          <input type="number" id="transport" min="0" step="10">
+          <span class="u">t-km</span>
+          <span class="badge" id="transportBadge">estimated - 64%</span>
         </div>
       </div>
-      <div class="form-row">
-        <label class="field-label">End-of-life recovery</label>
-        <div class="slider-row">
-          <input type="range" id="cr" min="0" max="100" step="1">
-          <span class="slider-val" id="crVal">0%</span>
-        </div>
-      </div>
-      <div class="form-row">
-        <label class="field-label">Renewable share in electricity</label>
-        <div class="slider-row">
-          <input type="range" id="s" min="0" max="100" step="1">
-          <span class="slider-val" id="sVal">0%</span>
-        </div>
-      </div>
 
-      <hr class="input-divider">
-      <p class="section-title">Process detail</p>
-      <p class="small mt-8">Filled from the factor library. Edit any line when site data is available.</p>
-
-      <div class="detail-row mt-16">
-        <span class="name">Electricity use</span>
-        <input type="number" id="elec" min="0" step="10">
-        <span class="u">kWh/t</span>
-        <span class="badge" id="elecBadge">estimated - 78%</span>
-      </div>
-      <div class="detail-row">
-        <span class="name">Thermal energy</span>
-        <input type="number" id="thermal" min="0" step="100">
-        <span class="u">MJ/t</span>
-        <span class="badge" id="thermalBadge">estimated - 71%</span>
-      </div>
-      <div class="detail-row">
-        <span class="name">Transport</span>
-        <input type="number" id="transport" min="0" step="10">
-        <span class="u">t-km</span>
-        <span class="badge" id="transportBadge">estimated - 64%</span>
+      <!-- === DESCRIBE MODE === -->
+      <div id="describeMode" style="display:none;">
+        <p class="small mt-8">Type a plain-English description and we'll extract the parameters automatically.</p>
+        <textarea id="nlText" class="mt-16" rows="4" placeholder="e.g. aluminium smelter in Odisha, about 40% scrap, mostly coal grid"></textarea>
+        <button class="btn btn-secondary mt-16" id="parseBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Read my description
+        </button>
+        <div class="data-chip-row mt-16" id="chips"></div>
+        <p class="small mt-16">Prototype parser matches key phrases; full build uses an LLM parser with source confidence.</p>
       </div>
 
       <button class="btn btn-primary btn-block mt-16" id="computeBtn">
@@ -117,20 +161,82 @@
       </button>
     </section>
 
+    <!-- RIGHT COLUMN: Map preview + info -->
     <aside class="card smart-card">
-      <p class="section-title">Quick entry</p>
-      <h3>Or just describe it</h3>
-      <p class="small mt-8">Use a plain sentence when you do not want to fill every field manually.</p>
-      <textarea id="nlText" class="mt-16" placeholder="e.g. aluminium smelter in Odisha, about 40% scrap, mostly coal grid"></textarea>
-      <button class="btn btn-secondary mt-16" id="parseBtn">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Read my description
-      </button>
-      <div class="data-chip-row mt-16" id="chips"></div>
-      <p class="small mt-16">Prototype parser matches key phrases; full build can use an LLM parser with source confidence.</p>
+      <!-- Map preview (only when India selected) -->
+      <div id="mapThumb" class="map-thumb" style="display:none;" title="Click to open India state grid map">
+        <p class="section-title" style="margin-bottom:8px;">State grid map</p>
+        <div class="map-thumb-inner" id="mapThumbSvg"></div>
+        <div class="map-thumb-label" id="mapThumbLabel">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          <span>Click to select a state grid</span>
+        </div>
+      </div>
+
+      <!-- Always-visible info panel -->
+      <div id="infoPanel">
+        <p class="section-title">How it works</p>
+        <h3 style="font-size:17px;">Two ways to input</h3>
+        <p class="small mt-8"><strong>⚙️ Form:</strong> Pick metal, route, grid, sliders — full control.</p>
+        <p class="small mt-8"><strong>💬 Describe:</strong> Type a sentence like <em>"steel from Odisha, 60% scrap"</em> and we'll parse it.</p>
+        <hr class="input-divider">
+        <p class="section-title">State grid</p>
+        <p class="small mt-8">When India grid is selected, click the map above to pick a specific state. Grid intensity varies from <strong style="color:#22c55e;">0.18</strong> (Himachal, hydro) to <strong style="color:#f97316;">0.92</strong> (Chhattisgarh, coal).</p>
+        <div style="display:flex;gap:10px;margin-top:10px;font-size:11px;color:#64748b;">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#22c55e;opacity:.7;vertical-align:middle;margin-right:2px;"></span>Clean</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#eab308;opacity:.7;vertical-align:middle;margin-right:2px;"></span>Mixed</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#f97316;opacity:.7;vertical-align:middle;margin-right:2px;"></span>Coal</span>
+          <span style="opacity:.5;">kg CO₂/kWh</span>
+        </div>
+      </div>
+
+      <hr class="input-divider">
+
+      <!-- Quick-load presets -->
+      <p class="section-title">Quick presets</p>
+      <p class="small mt-8">Load a ready-made scenario in one click.</p>
+      <div id="presetBtns" style="display:flex;flex-direction:column;gap:6px;margin-top:10px;"></div>
+
+      <hr class="input-divider">
+
+      <!-- Did you know -->
+      <p class="section-title">Did you know?</p>
+      <div style="margin-top:8px;padding:12px;background:var(--navy-wash);border-radius:8px;font-size:12.5px;line-height:1.55;color:var(--ink);">
+        <p style="margin:0;">🏭 <strong>Aluminium smelting</strong> uses ~14,500 kWh per tonne — more electricity than any other metal. Grid source matters enormously.</p>
+      </div>
+      <div style="margin-top:8px;padding:12px;background:var(--green-wash);border-radius:8px;font-size:12.5px;line-height:1.55;color:var(--ink);">
+        <p style="margin:0;">♻️ <strong>Recycled aluminium</strong> cuts CO₂ by ~95% vs primary. The circular route is the single biggest lever.</p>
+      </div>
+      <div style="margin-top:8px;padding:12px;background:var(--saffron-wash);border-radius:8px;font-size:12.5px;line-height:1.55;color:var(--ink);">
+        <p style="margin:0;">🇮🇳 India's <strong>CBAM exposure</strong> starts 2026. EU will charge importers based on embedded carbon — this tool quantifies that risk.</p>
+      </div>
     </aside>
   </div>
 </main>
+
+<!-- MAP FULLSCREEN OVERLAY -->
+<div class="map-overlay" id="mapOverlay">
+  <div class="map-modal">
+    <div class="map-modal-head">
+      <h3>🗺️ Select state grid intensity</h3>
+      <button class="map-close" id="mapCloseBtn" title="Close">✕</button>
+    </div>
+    <div id="map-container" style="height:420px;overflow:hidden;position:relative;border-radius:8px;background:#fafbfc;border:1px solid #e2e8f0;">
+      <div class="small" style="text-align:center;padding-top:180px;color:#94a3b8;">Loading map…</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
+      <div style="display:flex;gap:14px;font-size:11px;color:#64748b;">
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#22c55e;opacity:.7;vertical-align:middle;margin-right:3px;"></span>Clean (&lt;0.4)</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#eab308;opacity:.7;vertical-align:middle;margin-right:3px;"></span>Mixed (0.4–0.7)</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#f97316;opacity:.7;vertical-align:middle;margin-right:3px;"></span>Coal (&gt;0.7)</span>
+        <span style="opacity:.5;">kg CO₂/kWh</span>
+      </div>
+      <span id="mapResetBtn" style="font-size:11px;color:var(--navy);cursor:pointer;display:none;">✕ Reset to national</span>
+    </div>
+    <div id="mapChip" style="text-align:center;margin-top:10px;"></div>
+    <p class="small" style="text-align:center;margin:6px 0 0;color:#b0b8c4;font-size:10px;">Source: CEA CO₂ Baseline v19 + state generation mix · indicative values</p>
+  </div>
+</div>
 
 <footer class="site-footer">
   <div class="wrap inner">
@@ -148,6 +254,7 @@
 <script src="js/data.js"></script>
 <script src="js/calc.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/map-svg.js"></script>
 <script>
 (function () {
   let st = DC.loadState();
@@ -158,6 +265,32 @@
 
   $region.innerHTML = Object.entries(DC.GRID)
     .map(([k, v]) => `<option value="${k}">${v.label}</option>`).join("");
+
+  // ── Mode toggle (Form / Describe) ──
+  DC.$("#modeToggle").addEventListener("click", function(e) {
+    var btn = e.target.closest("button"); if (!btn) return;
+    var mode = btn.dataset.mode;
+    DC.$("#modeToggle").querySelectorAll("button").forEach(function(b) { b.classList.toggle("on", b === btn); });
+    DC.$("#formMode").style.display = mode === "form" ? "block" : "none";
+    DC.$("#describeMode").style.display = mode === "describe" ? "block" : "none";
+  });
+
+  // Preset buttons
+  var presetContainer = DC.$("#presetBtns");
+  DC.PRESETS.forEach(function(p) {
+    var chipColor = p.chip === "circular" ? "var(--green-wash)" : "var(--navy-wash)";
+    var btn = document.createElement("button");
+    btn.style.cssText = "display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;text-align:left;font-family:var(--font-body);font-size:12.5px;transition:border-color .2s,box-shadow .2s;";
+    btn.innerHTML = '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:' + (p.chip==="circular"?"var(--green)":"var(--navy)") + ';flex-shrink:0;"></span>' +
+      '<span><strong>' + p.title + '</strong><br><span style="font-size:11px;color:var(--ink-soft);">' + p.sub + '</span></span>';
+    btn.onmouseenter = function() { btn.style.borderColor = "var(--navy)"; btn.style.boxShadow = "0 2px 6px rgba(0,0,0,.06)"; };
+    btn.onmouseleave = function() { btn.style.borderColor = "var(--line)"; btn.style.boxShadow = "none"; };
+    btn.onclick = function() {
+      st = DC.applyPreset(p.id);
+      render();
+    };
+    presetContainer.appendChild(btn);
+  });
 
   function routeOf() {
     return st.routeKey === DC.ROUTES[st.metal].circular.key ? "circular" : "linear";
@@ -199,6 +332,7 @@
     fillDefaults(st.elecOverride != null);
     if (st.elecOverride != null) { $elec.value = st.elecOverride; setBadge("elec", true); }
     if (DC.repaintRanges) DC.repaintRanges();
+    if (window.updateMapUI) window.updateMapUI();
   }
 
   $metal.addEventListener("change", () => {
@@ -214,7 +348,12 @@
     st.elecOverride = null;
     render();
   });
-  $region.addEventListener("change", () => { st.region = $region.value; });
+  $region.addEventListener("change", () => { 
+    st.region = $region.value; 
+    st.stateName = null;
+    st.stateGrid = null;
+    render();
+  });
 
   function slider(el, valEl, key) {
     el.addEventListener("input", () => {
@@ -232,9 +371,17 @@
   DC.$("#parseBtn").addEventListener("click", () => {
     const res = DC.parseText(DC.$("#nlText").value, st);
     st = res.state;
+    // Switch to form mode to show the filled inputs
+    DC.$("#modeToggle").querySelectorAll("button").forEach(function(b) { b.classList.toggle("on", b.dataset.mode === "form"); });
+    DC.$("#formMode").style.display = "block";
+    DC.$("#describeMode").style.display = "none";
     render();
     DC.$("#chips").innerHTML = res.chips.map(c =>
       `<span class="chip ${c.ok ? "green" : "saffron"}">${c.label}</span>`).join("");
+    // Show chips temporarily in describe mode too
+    DC.$("#modeToggle").querySelectorAll("button").forEach(function(b) { b.classList.toggle("on", b.dataset.mode === "describe"); });
+    DC.$("#formMode").style.display = "none";
+    DC.$("#describeMode").style.display = "block";
   });
 
   DC.$("#computeBtn").addEventListener("click", () => {
@@ -243,7 +390,158 @@
     location.href = "results.html";
   });
 
-  render();
+  // ── MAP OVERLAY LOGIC ──
+  var overlay = DC.$("#mapOverlay");
+  var mapThumb = DC.$("#mapThumb");
+
+  // Open overlay
+  mapThumb.addEventListener("click", function() {
+    overlay.style.display = "flex";
+    requestAnimationFrame(function() { overlay.classList.add("open"); });
+  });
+
+  // Close overlay
+  function closeMap() {
+    overlay.classList.remove("open");
+    setTimeout(function() { overlay.style.display = "none"; }, 260);
+  }
+  DC.$("#mapCloseBtn").addEventListener("click", closeMap);
+  overlay.addEventListener("click", function(e) { if (e.target === overlay) closeMap(); });
+
+  // Map SVG init
+  setTimeout(function() {
+    var container = DC.$("#map-container");
+    if (!DC.INDIA_SVG) { container.innerHTML = '<p class="small" style="text-align:center;padding:40px 0;">Map data not loaded.</p>'; return; }
+    container.innerHTML = DC.INDIA_SVG;
+    var svgEl = container.querySelector("svg");
+    if (svgEl) {
+      svgEl.removeAttribute("width");
+      svgEl.removeAttribute("height");
+      svgEl.removeAttribute("enable-background");
+      svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      svgEl.style.width = "100%";
+      svgEl.style.height = "100%";
+      svgEl.style.display = "block";
+    }
+
+    // Also put a copy in the thumbnail
+    var thumbEl = DC.$("#mapThumbSvg");
+    thumbEl.innerHTML = DC.INDIA_SVG;
+    var thumbSvg = thumbEl.querySelector("svg");
+    if (thumbSvg) {
+      thumbSvg.removeAttribute("width");
+      thumbSvg.removeAttribute("height");
+      thumbSvg.removeAttribute("enable-background");
+      thumbSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    }
+
+    var svgMapAliases = {
+      orissa: "Odisha", jharkhand: "Jharkhand", chhattisgarh: "Chhattisgarh",
+      gujarat: "Gujarat", rajasthan: "Rajasthan", maharashtra: "Maharashtra",
+      karnataka: "Karnataka", tamil_nadu: "Tamil Nadu",
+      himachal_pradesh: "Himachal"
+    };
+
+    // Tooltip
+    var tip = document.createElement("div");
+    tip.style.cssText = "position:absolute;pointer-events:none;background:rgba(28,43,58,.92);color:#fff;font-size:12px;padding:6px 12px;border-radius:6px;white-space:nowrap;display:none;z-index:10;font-family:var(--font-body);";
+    container.appendChild(tip);
+
+    function colorPaths(root, interactive) {
+      root.querySelectorAll("path").forEach(function(path) {
+        var id = (path.getAttribute("id") || "").toLowerCase();
+        var stateName = svgMapAliases[id];
+
+        if (!stateName || !DC.STATE_GRID[stateName]) {
+          path.setAttribute("fill", "#eef2f7");
+          path.setAttribute("stroke", "#cbd5e1");
+          path.setAttribute("stroke-width", "0.8");
+          path.style.cursor = "default";
+          if (interactive) { path.onclick = null; path.onmouseenter = null; path.onmouseleave = null; }
+          return;
+        }
+
+        var info = DC.STATE_GRID[stateName];
+        var factor = info.factor;
+        var fill = factor < 0.4 ? "#22c55e" : factor <= 0.7 ? "#eab308" : "#f97316";
+        var isActive = (st.stateName === stateName);
+
+        path.setAttribute("fill", fill);
+        path.setAttribute("fill-opacity", isActive ? "0.88" : "0.45");
+        path.setAttribute("stroke", isActive ? "#1C2B3A" : "#94a3b8");
+        path.setAttribute("stroke-width", isActive ? "2.5" : "0.8");
+        path.style.transition = "fill-opacity 0.2s, stroke-width 0.2s";
+
+        if (interactive) {
+          path.style.cursor = "pointer";
+          path.onclick = function() {
+            st.stateName = stateName;
+            st.stateGrid = factor;
+            render();
+          };
+          path.onmouseenter = function() {
+            if (!isActive) { path.setAttribute("fill-opacity", "0.7"); path.setAttribute("stroke-width", "1.5"); }
+            tip.textContent = stateName + " — " + factor + " kg CO₂/kWh (" + info.note + ")";
+            tip.style.display = "block";
+          };
+          path.onmouseleave = function() {
+            if (!isActive) { path.setAttribute("fill-opacity", "0.45"); path.setAttribute("stroke-width", "0.8"); }
+            tip.style.display = "none";
+          };
+          path.onmousemove = function(e) {
+            var rect = container.getBoundingClientRect();
+            tip.style.left = (e.clientX - rect.left + 12) + "px";
+            tip.style.top = (e.clientY - rect.top - 28) + "px";
+          };
+        }
+      });
+    }
+
+    window.updateMapUI = function() {
+      // Thumbnail visibility
+      mapThumb.style.display = (st.region === "IN") ? "block" : "none";
+
+      // Color the overlay map
+      var svgRoot = DC.$("#map-container svg");
+      if (svgRoot) colorPaths(svgRoot, true);
+
+      // Color the thumbnail
+      var thumbRoot = DC.$("#mapThumbSvg svg");
+      if (thumbRoot) colorPaths(thumbRoot, false);
+
+      // Thumb label
+      var thumbLabel = DC.$("#mapThumbLabel");
+      if (st.stateName && st.stateGrid != null) {
+        var info = DC.STATE_GRID[st.stateName];
+        thumbLabel.innerHTML = '<span style="font-size:12px;">📍 <strong>' + st.stateName + '</strong> — ' + DC.sig3(st.stateGrid) + ' kg CO₂/kWh <span style="opacity:.6;">(' + info.note + ')</span> · click to change</span>';
+      } else {
+        thumbLabel.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg><span>Click to select a state grid</span>';
+      }
+
+      // Overlay chip
+      var chipEl = DC.$("#mapChip");
+      var resetBtn = DC.$("#mapResetBtn");
+      if (st.stateName && st.stateGrid != null) {
+        var info = DC.STATE_GRID[st.stateName];
+        var fc = info.factor < 0.4 ? "#dcfce7" : info.factor <= 0.7 ? "#fef9c3" : "#ffedd5";
+        var bc = info.factor < 0.4 ? "#86efac" : info.factor <= 0.7 ? "#fde047" : "#fdba74";
+        chipEl.innerHTML = '<span style="display:inline-block;padding:6px 18px;border-radius:20px;font-size:14px;font-weight:600;background:'+fc+';color:#1C2B3A;border:1px solid '+bc+';">📍 '+st.stateName+' — '+DC.sig3(st.stateGrid)+' kg CO₂/kWh <span style="font-weight:400;opacity:.7;">('+info.note+')</span></span>';
+        resetBtn.style.display = "inline";
+      } else {
+        chipEl.innerHTML = '<span style="font-size:13px;color:#94a3b8;">👆 Click a colored state above to use its grid intensity</span>';
+        resetBtn.style.display = "none";
+      }
+    };
+
+    DC.$("#mapResetBtn").addEventListener("click", function() {
+      st.stateName = null;
+      st.stateGrid = null;
+      render();
+    });
+
+    render();
+  }, 0);
+
 })();
 </script>
 </body>

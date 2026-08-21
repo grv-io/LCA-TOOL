@@ -12,6 +12,20 @@ DC.GRID = {
 };
 DC.RENEWABLE_FACTOR = 0.04; // lifecycle intensity of the renewable mix
 
+/* U2 indicative Indian state grid intensity, kg CO2e per kWh */
+DC.STATE_GRID = {
+  "Odisha":        { factor: 0.88, note: "coal-dominant" },
+  "Jharkhand":     { factor: 0.91, note: "coal-dominant" },
+  "Chhattisgarh":  { factor: 0.92, note: "coal-dominant" },
+  "Gujarat":       { factor: 0.62, note: "gas + solar share" },
+  "Rajasthan":     { factor: 0.55, note: "high solar share" },
+  "Maharashtra":   { factor: 0.72, note: "mixed" },
+  "Karnataka":     { factor: 0.45, note: "hydro + solar" },
+  "Tamil Nadu":    { factor: 0.58, note: "wind share" },
+  "Himachal":      { factor: 0.18, note: "hydro-dominant" },
+  "National avg":  { factor: 0.71, note: "CEA v19" },
+};
+
 /* §1 Route parameters, per tonne of metal */
 DC.ROUTES = {
   aluminium: {
@@ -33,7 +47,6 @@ DC.WATER_RATIO = 0.004;   // m3 per kg CO2e
 DC.ACID_RATIO = 0.005;    // kg SO2e per kg CO2e
 DC.PRIMARY_ENERGY = 0.0103; // GJ per kWh incl. generation losses
 DC.EF = 0.9;              // MCI recycling process efficiency
-DC.RANGE = { lo: 0.92, hi: 1.09 };
 
 /* §3 Stage split of GWP, per route */
 DC.STAGES = ["Mining", "Refining", "Smelting", "Casting", "Transport"];
@@ -44,7 +57,8 @@ DC.STAGE_SHARE = {
 
 /* §2 Provenance rows */
 DC.PROVENANCE = [
-  { factor: "Grid intensity — India",           source: "CEA CO₂ Baseline Database v19", year: 2023, url: "https://cea.nic.in", show: s => s.region === "IN" },
+  { factor: "Grid intensity — India",           source: "CEA CO₂ Baseline Database v19", year: 2023, url: "https://cea.nic.in", show: s => s.region === "IN" && s.stateGrid == null },
+  { factor: "State grid intensity — indicative", source: "CEA CO₂ Baseline v19 + state generation mix", year: 2023, url: "https://cea.nic.in", show: s => s.region === "IN" && s.stateGrid != null },
   { factor: "Grid intensity — world/EU",        source: "IEA emission factors",              year: 2023, url: "https://www.iea.org", show: s => s.region !== "IN" },
   { factor: "Smelting electricity, PFC & anode", source: "International Aluminium Institute LCI", year: 2022, url: "https://international-aluminium.org", show: s => s.metal === "aluminium" },
   { factor: "Alumina refining & mining",        source: "EF 3.1 / ELCD",                     year: 2022, url: "https://eplca.jrc.ec.europa.eu", show: s => s.metal === "aluminium" },
@@ -70,6 +84,7 @@ DC.PRESETS = [
 DC.defaultState = function () {
   const p = DC.PRESETS[0];
   return { metal: p.metal, routeKey: p.routeKey, region: p.region, r: p.r, cr: p.cr, s: p.s,
+           stateName: p.stateName || null, stateGrid: p.stateGrid || null,
            elecOverride: null, baseline: { r: p.r, cr: p.cr, s: p.s } };
 };
 DC.loadState = function () {
@@ -83,7 +98,16 @@ DC.saveState = function (st) { localStorage.setItem("dc_state", JSON.stringify(s
 DC.applyPreset = function (id) {
   const p = DC.PRESETS.find(x => x.id === id) || DC.PRESETS[0];
   const st = { metal: p.metal, routeKey: p.routeKey, region: p.region, r: p.r, cr: p.cr, s: p.s,
+               stateName: p.stateName || null, stateGrid: p.stateGrid || null,
                elecOverride: null, baseline: { r: p.r, cr: p.cr, s: p.s } };
   DC.saveState(st);
   return st;
+};
+
+/* CBAM Constants */
+DC.CBAM = {
+  phaseIn: { 2026: 0.025, 2027: 0.05, 2028: 0.10, 2029: 0.225, 2030: 0.485, 2034: 1.0 },
+  etsPriceEUR: 75,          // adjustable slider 50–100 €/t CO2
+  eurToInr: 90,             // adjustable
+  benchmark: { aluminium: 6.0, steel: 1.8 },  // indicative EU benchmark t CO2e/t; label "indicative"
 };

@@ -63,7 +63,7 @@ acid   = 0.005 * gwp        # kg SO2e / t
 elec_share = (blended elec_kWh * grid_eff) / gwp     # used by recommendations
 ```
 
-**Displayed range (uncertainty):** `low = value × 0.92`, `high = value × 1.09`, both to 3 significant figures. Label always `range {low} – {high}`.
+**Displayed range (uncertainty):** range = p05-p95 from a 1,000-run Monte Carlo, factor gsd 1.1. Each run applies independent lognormal noise to grid factor, electricity use and base_CO2. GWP uses the sampled p05-p95 directly; water and acidification ranges are derived from the GWP samples using their fixed ratios.
 
 **MCI (Ellen MacArthur, X = 1):**
 ```
