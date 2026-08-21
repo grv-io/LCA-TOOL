@@ -3,19 +3,434 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DhatuChakra — हर टन का हिसाब</title>
+<title>DhatuChakra &mdash; &#2361;&#2352; &#2335;&#2344; &#2325;&#2366; &#2361;&#2367;&#2360;&#2366;&#2348;</title>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <link rel="stylesheet" href="css/theme.css">
+<style>
+  .home-page {
+    min-height: 100vh;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.92), rgba(251,248,243,.96) 48%, var(--paper)),
+      radial-gradient(circle at 14% 14%, rgba(232,106,23,.16), transparent 30%),
+      radial-gradient(circle at 88% 40%, rgba(23,128,61,.13), transparent 32%);
+    overflow-x: hidden;
+  }
+
+  .home-page * { letter-spacing: 0; }
+  .home-page .wrap {
+    width: 100%;
+    max-width: 1420px;
+    padding-left: clamp(24px, 4.2vw, 68px);
+    padding-right: clamp(24px, 4.2vw, 68px);
+  }
+  .home-page .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(251,248,243,.88);
+    border-bottom: 1px solid rgba(36,70,110,.08);
+    backdrop-filter: blur(16px);
+  }
+  .home-page .brand .word { font-size: 24px; }
+  .home-page .brand .dev { font-size: 14px; }
+
+  .home-hero {
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(36,70,110,.08);
+  }
+  .home-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(118deg, rgba(232,106,23,.18) 0 17%, transparent 17% 63%, rgba(23,128,61,.15) 63% 100%),
+      linear-gradient(90deg, rgba(255,255,255,.72), rgba(255,255,255,.22));
+    clip-path: polygon(0 0, 100% 0, 100% 84%, 69% 92%, 35% 86%, 0 96%);
+    pointer-events: none;
+  }
+  .home-hero::after {
+    content: "";
+    position: absolute;
+    right: -140px;
+    top: 108px;
+    width: 520px;
+    height: 520px;
+    background: url("assets/chakra.svg") center / contain no-repeat;
+    opacity: .06;
+    pointer-events: none;
+  }
+  .home-hero .inner {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.02fr) minmax(390px, .98fr);
+    gap: 48px;
+    align-items: center;
+    padding: 58px 0 34px;
+  }
+
+  .home-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    color: var(--navy);
+    font-weight: 800;
+    font-size: 14px;
+  }
+  .home-kicker::before {
+    content: "";
+    width: 46px;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--saffron), #fff 48%, var(--green));
+    box-shadow: inset 0 0 0 1px rgba(36,70,110,.08);
+  }
+  .home-hero h1 {
+    max-width: 760px;
+    font-size: 58px;
+    line-height: 1.02;
+    font-weight: 800;
+  }
+  .home-hero .sub {
+    max-width: 650px;
+    margin-top: 20px;
+    color: #314354;
+    font-size: 21px;
+    line-height: 1.55;
+  }
+  .home-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 30px;
+  }
+  .home-page .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    border-radius: 8px;
+    box-shadow: 0 12px 24px rgba(28,43,58,.08);
+  }
+  .home-page .btn svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+  }
+  .home-page .btn-secondary {
+    background: rgba(255,255,255,.78);
+    box-shadow: none;
+  }
+  .home-proof {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    max-width: 660px;
+    margin-top: 34px;
+  }
+  .home-proof span {
+    display: block;
+    padding-top: 14px;
+    border-top: 2px solid rgba(36,70,110,.13);
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+  .home-proof strong {
+    display: block;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 24px;
+    line-height: 1.1;
+  }
+
+  .home-showcase {
+    position: relative;
+    min-height: 470px;
+    display: flex;
+    align-items: center;
+  }
+  .home-showcase .showcase-chakra {
+    position: absolute;
+    left: -110px;
+    top: 50%;
+    width: 480px;
+    height: 480px;
+    transform: translateY(-50%);
+    opacity: .08;
+  }
+  .home-result-grid {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .home-result-card {
+    position: relative;
+    min-height: 174px;
+    padding: 22px 22px 20px;
+    background: rgba(255,255,255,.9);
+    border: 1px solid rgba(36,70,110,.14);
+    border-radius: 8px;
+    box-shadow: 0 20px 42px rgba(28,43,58,.13);
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .home-result-card:nth-child(2),
+  .home-result-card:nth-child(4) {
+    transform: translateY(34px);
+  }
+  .home-result-card:hover,
+  .home-result-card:focus-within {
+    transform: translateY(-4px);
+    border-color: rgba(232,106,23,.65);
+    box-shadow: 0 24px 48px rgba(28,43,58,.17);
+  }
+  .home-result-card:focus-visible {
+    outline: 3px solid rgba(36,70,110,.28);
+    outline-offset: 3px;
+  }
+  .home-result-card:nth-child(2):hover,
+  .home-result-card:nth-child(4):hover,
+  .home-result-card:nth-child(2):focus-within,
+  .home-result-card:nth-child(4):focus-within {
+    transform: translateY(24px);
+  }
+  .home-result-card h3 {
+    max-width: 10ch;
+    margin-bottom: 7px;
+    font-size: 25px;
+    line-height: 1.04;
+  }
+  .home-result-card .route {
+    min-height: 42px;
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    line-height: 1.35;
+  }
+  .home-result-card .metric {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .home-result-card .num {
+    color: #0F1E33;
+    font-family: var(--font-display);
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .home-result-card .num small {
+    color: var(--ink-soft);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .home-result-card .card-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .home-result-card .mini-trend {
+    width: 72px;
+    height: 38px;
+    flex: 0 0 auto;
+    margin-top: 2px;
+  }
+  .home-result-card .mini-trend path:first-child {
+    fill: none;
+    stroke: rgba(23,128,61,.18);
+    stroke-width: 10;
+    stroke-linecap: round;
+  }
+  .home-result-card .mini-trend path:last-child {
+    fill: none;
+    stroke: var(--green);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .home-result-card .chip {
+    margin-top: 12px;
+    font-weight: 700;
+  }
+  .home-result-card .chip.linear {
+    background: var(--saffron-wash);
+    color: var(--saffron-deep);
+  }
+  .home-result-card::after {
+    content: "";
+    position: absolute;
+    right: -34px;
+    bottom: -34px;
+    width: 110px;
+    height: 110px;
+    background: url("assets/chakra.svg") center / contain no-repeat;
+    opacity: .055;
+  }
+
+  .home-flow-section {
+    position: relative;
+    z-index: 2;
+    margin-top: -6px;
+    padding-bottom: 30px;
+  }
+  .home-flow {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 28px;
+    padding: 26px 0 12px;
+  }
+  .home-flow::before {
+    content: "";
+    position: absolute;
+    left: 44px;
+    right: 44px;
+    top: 55px;
+    height: 3px;
+    background: linear-gradient(90deg, rgba(232,106,23,.35), rgba(36,70,110,.22), rgba(23,128,61,.35));
+  }
+  .flow-step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .flow-step .n {
+    position: relative;
+    z-index: 1;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 9px solid rgba(36,70,110,.09);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--navy);
+    box-shadow: 0 10px 26px rgba(28,43,58,.12);
+    font-family: var(--font-display);
+    font-size: 25px;
+    font-weight: 800;
+  }
+  .flow-step h3 {
+    margin-top: 4px;
+    margin-bottom: 5px;
+    font-size: 22px;
+  }
+  .flow-step p {
+    max-width: 28ch;
+    color: var(--ink-soft);
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .flow-icon {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    color: var(--navy);
+  }
+  .flow-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    fill: none;
+  }
+  .flow-step:nth-child(1) .flow-icon { color: var(--saffron); }
+  .flow-step:nth-child(3) .flow-icon { color: var(--green); }
+
+  .home-page .site-footer {
+    margin-top: 26px;
+    background: rgba(255,255,255,.45);
+  }
+
+  @media (max-width: 1020px) {
+    .home-hero .inner {
+      grid-template-columns: 1fr;
+      gap: 28px;
+      min-height: auto;
+      padding-top: 48px;
+    }
+    .home-hero h1 { font-size: 48px; }
+    .home-showcase { min-height: auto; padding-bottom: 44px; }
+    .home-showcase .showcase-chakra { left: 50%; transform: translate(-50%, -50%); }
+    .home-result-card:nth-child(2),
+    .home-result-card:nth-child(4),
+    .home-result-card:nth-child(2):hover,
+    .home-result-card:nth-child(4):hover {
+      transform: none;
+    }
+    .home-flow-section { margin-top: 0; }
+  }
+
+  @media (max-width: 760px) {
+    .home-page .site-header .wrap {
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .home-page .brand {
+      flex-wrap: wrap;
+      row-gap: 2px;
+    }
+    .home-page .brand .word { font-size: 21px; }
+    .home-page .brand .dev { width: 100%; margin-left: 34px; }
+    .home-page .nav {
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      font-size: 14px;
+    }
+    .home-hero h1 { font-size: 38px; }
+    .home-hero .sub { font-size: 18px; }
+    .home-proof,
+    .home-result-grid,
+    .home-flow {
+      grid-template-columns: 1fr;
+    }
+    .home-result-card { min-height: auto; }
+    .home-flow {
+      gap: 22px;
+      padding-top: 10px;
+    }
+    .home-flow::before { display: none; }
+    .flow-step { grid-template-columns: 64px 1fr; }
+    .flow-step .n {
+      width: 56px;
+      height: 56px;
+      font-size: 22px;
+      border-width: 8px;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .home-page .site-header .wrap {
+      flex-direction: column;
+    }
+    .home-page .nav {
+      justify-content: flex-start;
+    }
+  }
+</style>
 </head>
-<body>
+<body class="home-page">
 
 <header class="site-header">
   <div class="wrap">
     <a class="brand" href="index.html">
-      <span class="chakra-mark" data-size="24"></span>
-      <span class="word">DhatuChakra</span><span class="dev">धातुचक्र</span>
+      <span class="chakra-mark" data-size="28"></span>
+      <span class="word">DhatuChakra</span><span class="dev">&#2343;&#2366;&#2340;&#2369;&#2330;&#2325;&#2381;&#2352;</span>
     </a>
-    <nav class="nav">
+    <nav class="nav" aria-label="Primary">
       <a href="assess.html">Assess</a>
       <a href="results.html">Results</a>
       <a href="compare.html">Compare</a>
@@ -23,44 +438,71 @@
     </nav>
   </div>
 </header>
-<div class="flag-band"><span></span><span></span><span></span></div>
+<div class="flag-band" aria-hidden="true"><span></span><span></span><span></span></div>
 
-<section class="hero">
+<section class="home-hero">
   <div class="wrap inner">
-    <div>
-      <h1>हर टन का हिसाब।</h1>
-      <p class="sub">Every tonne, accounted for. Life-cycle assessment and circularity scoring for Indian metals — in minutes, not months.</p>
-      <div class="cta">
-        <a class="btn btn-primary" href="assess.html">Start an assessment</a>
-        <a class="btn btn-secondary" href="results.html" id="sampleBtn">See a sample result</a>
+    <div class="hero-copy">
+      <p class="home-kicker">Indian metals circularity intelligence</p>
+      <h1>&#2361;&#2352; &#2335;&#2344; &#2325;&#2366; &#2361;&#2367;&#2360;&#2366;&#2348;&#2404;<br>From ore to loop.</h1>
+      <p class="sub">Life-cycle assessment and circularity scoring for aluminium and steel, tuned for Indian grids, routes and evidence trails.</p>
+      <div class="home-cta">
+        <a class="btn btn-primary" href="assess.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Start an assessment
+        </a>
+        <a class="btn btn-secondary" href="results.html" id="sampleBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-8M20 16v-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          See sample result
+        </a>
       </div>
-      <p class="small quiet">Aluminium · Steel — cradle-to-gate · MCI · uncertainty included</p>
+      <div class="home-proof" aria-label="Assessment coverage">
+        <span><strong>2 metals</strong>Aluminium and steel</span>
+        <span><strong>4 routes</strong>Primary, recycled, BF-BOF, EAF</span>
+        <span><strong>5 signals</strong>Carbon, energy, water, acidification, MCI</span>
+      </div>
     </div>
-    <div class="watermark chakra-mark" data-size="300"></div>
+
+    <div class="home-showcase" aria-label="Sample route results">
+      <div class="showcase-chakra chakra-mark" data-size="480" data-stroke="var(--navy)"></div>
+      <div class="home-result-grid" id="presets"></div>
+    </div>
   </div>
 </section>
 
 <main class="wrap">
-  <section class="mt-40">
-    <div class="grid-4" id="presets"></div>
-  </section>
-
-  <section class="mt-64">
-    <div class="grid-3 steps">
-      <div class="step">
+  <section class="home-flow-section" aria-label="Workflow">
+    <div class="home-flow">
+      <div class="flow-step">
         <span class="n">1</span>
-        <h3>Describe your process</h3>
-        <p>Five inputs, or one plain sentence. Missing values are estimated and clearly marked.</p>
+        <div>
+          <h3>Describe your process</h3>
+          <p>Material route, scrap share, grid mix and recovery assumptions.</p>
+          <div class="flow-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+          </div>
+        </div>
       </div>
-      <div class="step">
+      <div class="flow-step">
         <span class="n">2</span>
-        <h3>See the full picture</h3>
-        <p>Emissions, energy, water and acidification per tonne — with ranges, stage by stage, source by source.</p>
+        <div>
+          <h3>See the full picture</h3>
+          <p>Stage-wise emissions with uncertainty and source provenance.</p>
+          <div class="flow-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M7 17V9M12 17V5M17 17v-6"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M4 19l5-5 4 3 7-9"/><path d="M15 8h5v5"/></svg>
+          </div>
+        </div>
       </div>
-      <div class="step">
+      <div class="flow-step">
         <span class="n">3</span>
-        <h3>Close the loop</h3>
-        <p>Drag the scrap slider. Watch the Chakra fill. Get a report you can act on.</p>
+        <div>
+          <h3>Close the loop</h3>
+          <p>Compare linear and circular scenarios, then export the report.</p>
+          <div class="flow-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M7 7h7a5 5 0 0 1 5 5"/><path d="M16 4l3 3-3 3"/><path d="M17 17h-7a5 5 0 0 1-5-5"/><path d="M8 20l-3-3 3-3"/></svg>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -68,13 +510,13 @@
 
 <footer class="site-footer">
   <div class="wrap inner">
-    <p>Built for Smart India Hackathon · Problem #48 · Ministry of Mines</p>
-    <span class="chakra-mark" data-size="18"></span>
+    <p>Built for Smart India Hackathon &middot; Problem #48 &middot; Ministry of Mines</p>
+    <span class="chakra-mark" data-size="20"></span>
     <p>Data sources:
-      <a href="https://international-aluminium.org" target="_blank" rel="noopener">IAI</a> ·
-      <a href="https://worldsteel.org" target="_blank" rel="noopener">worldsteel</a> ·
-      <a href="https://cea.nic.in" target="_blank" rel="noopener">CEA</a> ·
-      <a href="https://eplca.jrc.ec.europa.eu" target="_blank" rel="noopener">EF 3.1</a> ·
+      <a href="https://international-aluminium.org" target="_blank" rel="noopener">IAI</a> &middot;
+      <a href="https://worldsteel.org" target="_blank" rel="noopener">worldsteel</a> &middot;
+      <a href="https://cea.nic.in" target="_blank" rel="noopener">CEA</a> &middot;
+      <a href="https://eplca.jrc.ec.europa.eu" target="_blank" rel="noopener">EF 3.1</a> &middot;
       <a href="https://www.idematapp.com" target="_blank" rel="noopener">IDEMAT</a></p>
   </div>
 </footer>
@@ -84,23 +526,47 @@
 <script src="js/ui.js"></script>
 <script>
 (function () {
+  const display = {
+    1: { title: "Aluminium Primary", sub: "Hall-Heroult smelter · Odisha grid" },
+    2: { title: "Aluminium Recycled", sub: "Scrap remelt route" },
+    3: { title: "Steel BF-BOF", sub: "Blast furnace · integrated plant" },
+    4: { title: "Steel EAF", sub: "Electric arc · scrap charge" }
+  };
   const wrap = DC.$("#presets");
   wrap.innerHTML = DC.PRESETS.map(p => {
-    const st = { metal: p.metal, region: p.region, r: p.r, cr: p.cr, s: p.s, elecOverride: null };
+    const st = { metal: p.metal, routeKey: p.routeKey, region: p.region, r: p.r, cr: p.cr, s: p.s, elecOverride: null };
     const gwpT = DC.tonnes(DC.compute(st).gwp);
-    const chipCls = p.chip === "circular" ? "chip green" : "chip";
-    return `<div class="card preset" data-id="${p.id}">
-      <h3>${p.title}</h3>
-      <p class="route">${p.sub}</p>
-      <p class="num">${DC.sig3(gwpT)} <small>t CO₂e / t</small></p>
-      <p class="mt-8"><span class="${chipCls}">${p.chip}</span></p>
-    </div>`;
+    const clean = display[p.id] || { title: p.title, sub: p.sub };
+    const chipCls = p.chip === "circular" ? "chip green" : "chip linear";
+    return `<article class="home-result-card preset" data-id="${p.id}" tabindex="0" role="button" aria-label="Open sample result for ${clean.title}">
+      <div class="card-top">
+        <div>
+          <h3>${clean.title}</h3>
+          <p class="route">${clean.sub}</p>
+        </div>
+        <svg class="mini-trend" viewBox="0 0 76 40" aria-hidden="true">
+          <path d="M6 30 C18 28, 21 22, 32 23 S48 15, 55 18 S66 10, 70 7"></path>
+          <path d="M6 30 C18 28, 21 22, 32 23 S48 15, 55 18 S66 10, 70 7"></path>
+        </svg>
+      </div>
+      <div class="metric">
+        <p class="num">${DC.sig3(gwpT)} <small>t CO<sub>2</sub>e / t</small></p>
+      </div>
+      <span class="${chipCls}">${p.chip}</span>
+    </article>`;
   }).join("");
   wrap.addEventListener("click", e => {
     const card = e.target.closest(".preset");
     if (!card) return;
     DC.applyPreset(parseInt(card.dataset.id, 10));
     location.href = "results.html";
+  });
+  wrap.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const card = e.target.closest(".preset");
+    if (!card) return;
+    e.preventDefault();
+    card.click();
   });
   DC.$("#sampleBtn").addEventListener("click", () => DC.applyPreset(1));
 })();

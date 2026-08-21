@@ -3,19 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>New assessment — DhatuChakra</title>
+<title>New assessment - DhatuChakra</title>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
 <link rel="stylesheet" href="css/theme.css">
 </head>
-<body>
+<body class="app-page assess-page">
 
 <header class="site-header">
   <div class="wrap">
     <a class="brand" href="index.html">
-      <span class="chakra-mark" data-size="24"></span>
-      <span class="word">DhatuChakra</span><span class="dev">धातुचक्र</span>
+      <span class="chakra-mark" data-size="28"></span>
+      <span class="word">DhatuChakra</span><span class="dev">&#2343;&#2366;&#2340;&#2369;&#2330;&#2325;&#2381;&#2352;</span>
     </a>
-    <nav class="nav">
+    <nav class="nav" aria-label="Primary">
       <a href="assess.html" class="active">Assess</a>
       <a href="results.html">Results</a>
       <a href="compare.html">Compare</a>
@@ -23,17 +23,32 @@
     </nav>
   </div>
 </header>
-<div class="flag-band"><span></span><span></span><span></span></div>
+<div class="flag-band" aria-hidden="true"><span></span><span></span><span></span></div>
 
-<main class="wrap">
-  <h2 class="mt-40">New assessment</h2>
+<main class="wrap app-shell">
+  <section class="page-hero">
+    <div>
+      <p class="page-kicker">Assessment studio</p>
+      <h1>Build a metals footprint scenario.</h1>
+      <p>Choose route, grid, scrap content and recovery assumptions. DhatuChakra turns those inputs into LCA outputs and a circularity score.</p>
+    </div>
+    <aside class="hero-panel" aria-label="Assessment summary">
+      <p class="mini-label">Current model</p>
+      <p class="mini-big">LCA + MCI for Indian metal routes</p>
+      <div class="mini-grid">
+        <span><strong>5</strong>impact signals</span>
+        <span><strong>4</strong>production routes</span>
+        <span><strong>3</strong>grid profiles</span>
+      </div>
+    </aside>
+  </section>
 
-  <div class="grid-62-38 mt-24">
-    <!-- Form card -->
-    <div class="card">
+  <div class="grid-62-38">
+    <section class="card">
+      <p class="section-title">Scenario inputs</p>
       <h3>Assessment inputs</h3>
 
-      <div class="form-row">
+      <div class="form-row mt-16">
         <label class="field-label" for="metal">Metal</label>
         <select id="metal">
           <option value="aluminium">Aluminium</option>
@@ -73,52 +88,59 @@
         </div>
       </div>
 
-      <hr style="border:none;border-top:1px solid var(--line);margin:22px 0 14px">
-      <h3 style="font-size:16px;margin-bottom:2px">Process detail</h3>
-      <p class="small" style="margin-bottom:14px">Filled from our factor library — edit anything.</p>
+      <hr class="input-divider">
+      <p class="section-title">Process detail</p>
+      <p class="small mt-8">Filled from the factor library. Edit any line when site data is available.</p>
 
-      <div class="detail-row">
+      <div class="detail-row mt-16">
         <span class="name">Electricity use</span>
         <input type="number" id="elec" min="0" step="10">
         <span class="u">kWh/t</span>
-        <span class="badge" id="elecBadge">estimated · 78%</span>
+        <span class="badge" id="elecBadge">estimated - 78%</span>
       </div>
       <div class="detail-row">
         <span class="name">Thermal energy</span>
         <input type="number" id="thermal" min="0" step="100">
         <span class="u">MJ/t</span>
-        <span class="badge" id="thermalBadge">estimated · 71%</span>
+        <span class="badge" id="thermalBadge">estimated - 71%</span>
       </div>
       <div class="detail-row">
         <span class="name">Transport</span>
         <input type="number" id="transport" min="0" step="10">
-        <span class="u">t·km</span>
-        <span class="badge" id="transportBadge">estimated · 64%</span>
+        <span class="u">t-km</span>
+        <span class="badge" id="transportBadge">estimated - 64%</span>
       </div>
 
-      <button class="btn btn-primary btn-block mt-16" id="computeBtn">Compute assessment →</button>
-    </div>
+      <button class="btn btn-primary btn-block mt-16" id="computeBtn">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Compute assessment
+      </button>
+    </section>
 
-    <!-- Smart entry card -->
-    <div class="card" style="align-self:start">
+    <aside class="card smart-card">
+      <p class="section-title">Quick entry</p>
       <h3>Or just describe it</h3>
-      <textarea id="nlText" placeholder="e.g. aluminium smelter in Odisha, about 40% scrap, mostly coal grid"></textarea>
-      <button class="btn btn-secondary mt-16" id="parseBtn">Read my description</button>
-      <div class="mt-16" id="chips" style="display:flex;flex-wrap:wrap;gap:8px"></div>
-      <p class="small mt-16">In the full build this is an LLM parser; the prototype matches key phrases.</p>
-    </div>
+      <p class="small mt-8">Use a plain sentence when you do not want to fill every field manually.</p>
+      <textarea id="nlText" class="mt-16" placeholder="e.g. aluminium smelter in Odisha, about 40% scrap, mostly coal grid"></textarea>
+      <button class="btn btn-secondary mt-16" id="parseBtn">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM8 9h8M8 13h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Read my description
+      </button>
+      <div class="data-chip-row mt-16" id="chips"></div>
+      <p class="small mt-16">Prototype parser matches key phrases; full build can use an LLM parser with source confidence.</p>
+    </aside>
   </div>
 </main>
 
 <footer class="site-footer">
   <div class="wrap inner">
-    <p>Built for Smart India Hackathon · Problem #48 · Ministry of Mines</p>
-    <span class="chakra-mark" data-size="18"></span>
+    <p>Built for Smart India Hackathon &middot; Problem #48 &middot; Ministry of Mines</p>
+    <span class="chakra-mark" data-size="20"></span>
     <p>Data sources:
-      <a href="https://international-aluminium.org" target="_blank" rel="noopener">IAI</a> ·
-      <a href="https://worldsteel.org" target="_blank" rel="noopener">worldsteel</a> ·
-      <a href="https://cea.nic.in" target="_blank" rel="noopener">CEA</a> ·
-      <a href="https://eplca.jrc.ec.europa.eu" target="_blank" rel="noopener">EF 3.1</a> ·
+      <a href="https://international-aluminium.org" target="_blank" rel="noopener">IAI</a> &middot;
+      <a href="https://worldsteel.org" target="_blank" rel="noopener">worldsteel</a> &middot;
+      <a href="https://cea.nic.in" target="_blank" rel="noopener">CEA</a> &middot;
+      <a href="https://eplca.jrc.ec.europa.eu" target="_blank" rel="noopener">EF 3.1</a> &middot;
       <a href="https://www.idematapp.com" target="_blank" rel="noopener">IDEMAT</a></p>
   </div>
 </footer>
@@ -134,11 +156,10 @@
   const $r = DC.$("#r"), $cr = DC.$("#cr"), $s = DC.$("#s");
   const $elec = DC.$("#elec"), $thermal = DC.$("#thermal"), $transport = DC.$("#transport");
 
-  /* region options with the factor visible */
   $region.innerHTML = Object.entries(DC.GRID)
     .map(([k, v]) => `<option value="${k}">${v.label}</option>`).join("");
 
-  function routeOf() { /* linear|circular from routeKey */
+  function routeOf() {
     return st.routeKey === DC.ROUTES[st.metal].circular.key ? "circular" : "linear";
   }
 
@@ -156,10 +177,12 @@
 
   function setBadge(id, edited) {
     const el = DC.$("#" + id + "Badge");
-    if (edited) { el.textContent = "you"; el.classList.add("you"); }
-    else {
+    if (edited) {
+      el.textContent = "you";
+      el.classList.add("you");
+    } else {
       el.classList.remove("you");
-      el.textContent = { elec: "estimated · 78%", thermal: "estimated · 71%", transport: "estimated · 64%" }[id];
+      el.textContent = { elec: "estimated - 78%", thermal: "estimated - 71%", transport: "estimated - 64%" }[id];
     }
   }
 
@@ -178,7 +201,6 @@
     if (DC.repaintRanges) DC.repaintRanges();
   }
 
-  /* events */
   $metal.addEventListener("change", () => {
     st.metal = $metal.value;
     st.routeKey = DC.ROUTES[st.metal].linear.key;
@@ -188,11 +210,12 @@
   $seg.addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
     st.routeKey = b.dataset.k;
-    st.r = (routeOf() === "circular") ? 1 : 0;   /* route choice sets the sensible default */
+    st.r = (routeOf() === "circular") ? 1 : 0;
     st.elecOverride = null;
     render();
   });
   $region.addEventListener("change", () => { st.region = $region.value; });
+
   function slider(el, valEl, key) {
     el.addEventListener("input", () => {
       st[key] = parseInt(el.value, 10) / 100;
