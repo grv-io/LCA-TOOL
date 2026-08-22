@@ -17,8 +17,11 @@
     const enRoute  = rt => rt.elec_kWh * DC.PRIMARY_ENERGY + rt.base_energy_GJ;    // GJ/t
 
     const blend = (a, b) => (1 - st.r) * a + st.r * b;
-    const knn = typeof DC.knnImpute === "function" ? DC.knnImpute(st) : null;
-    const elecDefault = knn ? knn.elec : blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
+    /* Engine default = physics/library value (DATA_SPEC is the contract; preset numbers
+       16.6 / 0.92 / 2.19 / 0.70 depend on it). The k-NN model powers the assess-page
+       estimate + confidence badge only; it enters the engine via elecOverride when the
+       user accepts/edits the field. */
+    const elecDefault = blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
     const finalElec = (st.elecOverride != null && isFinite(st.elecOverride)) ? st.elecOverride : elecDefault;
 
     let elec_kWh = blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
@@ -51,8 +54,8 @@
     const routes = DC.ROUTES[st.metal];
     const g = gridEff(st.region, st.s, st.stateGrid);
     const blend = (a, b) => (1 - st.r) * a + st.r * b;
-    const knn = typeof DC.knnImpute === "function" ? DC.knnImpute(st) : null;
-    const elecDefault = knn ? knn.elec : blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
+    /* Same rule as DC.compute: physics default; k-NN only enters via elecOverride. */
+    const elecDefault = blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
     const elec = (st.elecOverride != null && isFinite(st.elecOverride)) ? st.elecOverride : elecDefault;
     const baseCO2 = blend(routes.linear.base_CO2_kg, routes.circular.base_CO2_kg);
     const gsd = 1.1;
