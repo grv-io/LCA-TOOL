@@ -127,20 +127,23 @@
           <span class="name">Electricity use</span>
           <input type="number" id="elec" min="0" step="10">
           <span class="u">kWh/t</span>
-          <span class="badge" id="elecBadge">estimated - 78%</span>
+          <span class="badge" id="elecBadge">estimated · 78%</span>
         </div>
         <div class="detail-row">
           <span class="name">Thermal energy</span>
           <input type="number" id="thermal" min="0" step="100">
           <span class="u">MJ/t</span>
-          <span class="badge" id="thermalBadge">estimated - 71%</span>
+          <span class="badge" id="thermalBadge">estimated · 71%</span>
         </div>
         <div class="detail-row">
           <span class="name">Transport</span>
           <input type="number" id="transport" min="0" step="10">
           <span class="u">t-km</span>
-          <span class="badge" id="transportBadge">estimated - 64%</span>
+          <span class="badge" id="transportBadge">estimated · 64%</span>
         </div>
+        <p class="small mt-8" id="knnNote" style="color:var(--ink-soft);font-style:italic;">
+          Estimates: k-NN model (k=7) over 500 physics-generated scenarios — not hardcoded.
+        </p>
       </div>
 
       <!-- === DESCRIBE MODE === -->
@@ -254,6 +257,7 @@
 <script src="js/data.js"></script>
 <script src="js/calc.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/ml_data.js"></script>
 <script src="js/map-svg.js"></script>
 <script>
 (function () {
@@ -299,13 +303,18 @@
   function fillDefaults(keepOverride) {
     const rs = DC.ROUTES[st.metal];
     const blend = (a, b) => Math.round((1 - st.r) * a + st.r * b);
+    // U4: compute k-NN estimates for elec + thermal
+    window._knnResult = (typeof DC.knnImpute === "function") ? DC.knnImpute(st) : null;
+    const knn = window._knnResult;
     if (!keepOverride) {
       st.elecOverride = null;
-      $elec.value = blend(rs.linear.elec_kWh, rs.circular.elec_kWh);
+      $elec.value = knn ? knn.elec : blend(rs.linear.elec_kWh, rs.circular.elec_kWh);
       setBadge("elec", false);
     }
-    $thermal.value = blend(DC.THERMAL_MJ[st.metal].linear, DC.THERMAL_MJ[st.metal].circular);
+    $thermal.value = knn ? knn.thermal : blend(DC.THERMAL_MJ[st.metal].linear, DC.THERMAL_MJ[st.metal].circular);
     $transport.value = DC.TRANSPORT_TKM;
+    setBadge("thermal", false);
+    setBadge("transport", false);
   }
 
   function setBadge(id, edited) {
@@ -315,7 +324,13 @@
       el.classList.add("you");
     } else {
       el.classList.remove("you");
-      el.textContent = { elec: "estimated - 78%", thermal: "estimated - 71%", transport: "estimated - 64%" }[id];
+      // U4: use k-NN real confidence when available
+      if (id !== "transport" && window._knnResult) {
+        const conf = id === "elec" ? window._knnResult.confElec : window._knnResult.confThermal;
+        el.textContent = "estimated \u00b7 " + Math.round(conf * 100) + "%";
+      } else {
+        el.textContent = { elec: "estimated \u00b7 78%", thermal: "estimated \u00b7 71%", transport: "estimated \u00b7 64%" }[id];
+      }
     }
   }
 
