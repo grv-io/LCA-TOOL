@@ -3,27 +3,32 @@
 (function () {
   const DC = window.DC;
 
-  function gridEff(region, s) {
-    return DC.GRID[region].factor * (1 - s) + DC.RENEWABLE_FACTOR * s;
+  function gridEff(region, s, stateGrid) {
+    const base = (stateGrid != null && isFinite(stateGrid)) ? Number(stateGrid) : DC.GRID[region].factor;
+    return base * (1 - s) + DC.RENEWABLE_FACTOR * s;
   }
 
-  /* Core assessment. st = {metal, region, r, cr, s, elecOverride} */
+  /* Core assessment. st = {metal, region, stateGrid, r, cr, s, elecOverride} */
   DC.compute = function (st) {
     const routes = DC.ROUTES[st.metal];
-    const g = gridEff(st.region, st.s);
+    const g = gridEff(st.region, st.s, st.stateGrid);
 
     const gwpRoute = rt => rt.elec_kWh * g + rt.base_CO2_kg;                       // kg CO2e/t
     const enRoute  = rt => rt.elec_kWh * DC.PRIMARY_ENERGY + rt.base_energy_GJ;    // GJ/t
 
     const blend = (a, b) => (1 - st.r) * a + st.r * b;
+    const knn = typeof DC.knnImpute === "function" ? DC.knnImpute(st) : null;
+    const elecDefault = knn ? knn.elec : blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
+    const finalElec = (st.elecOverride != null && isFinite(st.elecOverride)) ? st.elecOverride : elecDefault;
+
     let elec_kWh = blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
     let gwp = blend(gwpRoute(routes.linear), gwpRoute(routes.circular));
     let energy = blend(enRoute(routes.linear), enRoute(routes.circular));
 
-    if (st.elecOverride != null && isFinite(st.elecOverride)) {
-      gwp += (st.elecOverride - elec_kWh) * g;
-      energy += (st.elecOverride - elec_kWh) * DC.PRIMARY_ENERGY;
-      elec_kWh = st.elecOverride;
+    if (finalElec !== elec_kWh) {
+      gwp += (finalElec - elec_kWh) * g;
+      energy += (finalElec - elec_kWh) * DC.PRIMARY_ENERGY;
+      elec_kWh = finalElec;
     }
 
     const water = DC.WATER_RATIO * gwp;   // m3/t
@@ -39,6 +44,42 @@
 
     return { gwp, energy, water, acid, elec_kWh, elecShare, stages, grid: g,
              mci: DC.mci(st.r, st.cr) };
+  };
+
+  DC.monteCarlo = function (st, runs) {
+    runs = Math.max(1, Math.floor(runs || 1000));
+    const routes = DC.ROUTES[st.metal];
+    const g = gridEff(st.region, st.s, st.stateGrid);
+    const blend = (a, b) => (1 - st.r) * a + st.r * b;
+    const knn = typeof DC.knnImpute === "function" ? DC.knnImpute(st) : null;
+    const elecDefault = knn ? knn.elec : blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
+    const elec = (st.elecOverride != null && isFinite(st.elecOverride)) ? st.elecOverride : elecDefault;
+    const baseCO2 = blend(routes.linear.base_CO2_kg, routes.circular.base_CO2_kg);
+    const gsd = 1.1;
+
+    function gauss() {
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+    function noise() {
+      return Math.exp(Math.log(gsd) * gauss());
+    }
+
+    const samples = [];
+    for (let i = 0; i < runs; i++) {
+      const gridSample = g * noise();
+      const elecSample = elec * noise();
+      const baseSample = baseCO2 * noise();
+      samples.push(elecSample * gridSample + baseSample);
+    }
+    samples.sort((a, b) => a - b);
+
+    function pick(q) {
+      return samples[Math.min(samples.length - 1, Math.floor(samples.length * q))];
+    }
+    return { p05: pick(0.05), p50: pick(0.50), p95: pick(0.95), samples };
   };
 
   /* MCI — Ellen MacArthur, X = 1, Ef = 0.9 */
@@ -60,7 +101,6 @@
     const digits = Math.max(0, 3 - Math.floor(Math.log10(Math.abs(x))) - 1);
     return x.toFixed(Math.min(digits, 2)).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
   };
-  DC.range = function (x) { return "range " + DC.sig3(x * DC.RANGE.lo) + " – " + DC.sig3(x * DC.RANGE.hi); };
   DC.tonnes = kg => kg / 1000;
 
   /* §5 sentence templates */
@@ -72,7 +112,7 @@
   };
   DC.scrapSentence = function (st) {
     const routes = DC.ROUTES[st.metal];
-    const g = gridEff(st.region, st.s);
+    const g = gridEff(st.region, st.s, st.stateGrid);
     const per10 = ((routes.linear.elec_kWh * g + routes.linear.base_CO2_kg)
                  - (routes.circular.elec_kWh * g + routes.circular.base_CO2_kg)) / 10 / 1000;
     return "Every 10% more scrap saves about " + per10.toFixed(1) +
@@ -134,9 +174,30 @@
     if (/alumini|aluminum/.test(t)) { out.metal = "aluminium"; metalFound = true; chips.push({ ok: 1, label: "aluminium ✓" }); }
     else if (/steel/.test(t)) { out.metal = "steel"; metalFound = true; chips.push({ ok: 1, label: "steel ✓" }); }
 
-    const regionHit = t.match(/odisha|jharkhand|india|gujarat|rajasthan/);
-    if (regionHit) { out.region = "IN"; chips.push({ ok: 1, label: regionHit[0][0].toUpperCase() + regionHit[0].slice(1) + " → India grid ✓" }); }
-    else if (/europe/.test(t)) { out.region = "EU"; chips.push({ ok: 1, label: "Europe grid ✓" }); }
+    const stateAliases = {
+      odisha: "Odisha", orissa: "Odisha", jharkhand: "Jharkhand", chhattisgarh: "Chhattisgarh",
+      gujarat: "Gujarat", rajasthan: "Rajasthan", maharashtra: "Maharashtra",
+      karnataka: "Karnataka", "tamil nadu": "Tamil Nadu", tamil: "Tamil Nadu",
+      himachal: "Himachal", "himachal pradesh": "Himachal"
+    };
+    const stateHit = Object.keys(stateAliases).find(k => t.includes(k));
+    if (stateHit) {
+      const name = stateAliases[stateHit];
+      out.region = "IN";
+      out.stateName = name;
+      out.stateGrid = DC.STATE_GRID[name].factor;
+      chips.push({ ok: 1, label: name + " state grid ✓" });
+    } else if (/india|national/.test(t)) {
+      out.region = "IN";
+      out.stateName = null;
+      out.stateGrid = null;
+      chips.push({ ok: 1, label: "India grid ✓" });
+    } else if (/europe/.test(t)) {
+      out.region = "EU";
+      out.stateName = null;
+      out.stateGrid = null;
+      chips.push({ ok: 1, label: "Europe grid ✓" });
+    }
 
     if (/recycl|scrap charge|remelt/.test(t)) { out.routeKey = DC.ROUTES[out.metal].circular.key; routeFound = true; }
     else if (/blast|smelter|primary/.test(t)) { out.routeKey = DC.ROUTES[out.metal].linear.key; routeFound = true; }
@@ -153,5 +214,60 @@
     if (!metalFound || !routeFound) chips.push({ ok: 0, label: (metalFound ? "route" : "metal") + " — estimated from library" });
     chips.push({ ok: 0, label: "electricity — estimated from library" });
     return { state: out, chips };
+  };
+
+  /* U4 — k-NN imputer: predicts elec + thermal from nearest physics-generated scenarios */
+  DC.knnImpute = function (st) {
+    if (!DC.ML_ROWS || !DC.ML_ROWS.length) return null;
+
+    /* Feature vector: [metalIsAluminium, r, s, gridFactor] */
+    var gf = (st.stateGrid != null && isFinite(st.stateGrid))
+      ? Number(st.stateGrid) : DC.GRID[st.region].factor;
+    var query = [st.metal === "aluminium" ? 1 : 0, st.r, st.s, gf];
+
+    /* Normalize each feature to [0,1] using known domain ranges */
+    var mins  = [0, 0, 0, 0.18];
+    var maxes = [1, 1, 0.8, 0.92];
+    function norm(v, i) { return (v - mins[i]) / ((maxes[i] - mins[i]) || 1); }
+
+    /* Euclidean distance to every training row */
+    var dists = DC.ML_ROWS.map(function (row) {
+      var rv = [row.metal, row.r, row.s, row.gridFactor];
+      var sum = 0;
+      for (var i = 0; i < 4; i++) {
+        var d = norm(query[i], i) - norm(rv[i], i);
+        sum += d * d;
+      }
+      return { dist: Math.sqrt(sum), elec: row.elec, thermal: row.thermal };
+    });
+
+    /* Sort by distance, take k = 7 nearest */
+    dists.sort(function (a, b) { return a.dist - b.dist; });
+    var k = 7;
+    var nn = dists.slice(0, k);
+
+    /* Mean predictions */
+    var sumE = 0, sumT = 0;
+    for (var j = 0; j < k; j++) { sumE += nn[j].elec; sumT += nn[j].thermal; }
+    var meanElec = sumE / k;
+    var meanThermal = sumT / k;
+
+    /* Confidence = 1 - (stddev / mean), clamped [0.50, 0.99] */
+    var varE = 0, varT = 0;
+    for (var j = 0; j < k; j++) {
+      varE += (nn[j].elec - meanElec) * (nn[j].elec - meanElec);
+      varT += (nn[j].thermal - meanThermal) * (nn[j].thermal - meanThermal);
+    }
+    var stdElec = Math.sqrt(varE / k);
+    var stdThermal = Math.sqrt(varT / k);
+    var confElec = Math.max(0.50, Math.min(0.99, 1 - stdElec / (meanElec || 1)));
+    var confThermal = Math.max(0.50, Math.min(0.99, 1 - stdThermal / (meanThermal || 1)));
+
+    return {
+      elec: Math.round(meanElec),
+      thermal: Math.round(meanThermal),
+      confElec: confElec,
+      confThermal: confThermal
+    };
   };
 })();

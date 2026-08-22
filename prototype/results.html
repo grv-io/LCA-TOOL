@@ -57,6 +57,59 @@
   <section class="grid-4" id="kpis" aria-label="Impact indicators"></section>
 
   <section class="grid-2-1 mt-24">
+    <article class="card viz-card">
+      <p class="section-title">Uncertainty</p>
+      <h3>Uncertainty (1,000 Monte Carlo runs)</h3>
+      <div class="mt-16" id="uncertaintyHist"></div>
+      <p class="chart-note" id="uncertaintyRange"></p>
+    </article>
+    
+    <article class="card">
+      <p class="section-title">CBAM Export Exposure</p>
+      <h3 style="margin-bottom: 12px;">EU carbon tax risk</h3>
+      <p class="small" style="margin-bottom: 16px;">Calculates indicative CBAM certificate costs for EU exports.</p>
+      
+      <div class="detail-row">
+        <span class="name" style="font-size:14px;font-weight:500;">Export volume</span>
+        <input type="number" id="cbamTonnes" value="10000" min="0" step="1000">
+        <span class="u">t/yr</span>
+      </div>
+      
+      <div class="form-row" style="margin-bottom: 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+          <label class="field-label" style="margin:0;">Target year</label>
+        </div>
+        <select id="cbamYear">
+          <option value="2026">2026 (2.5% phase-in)</option>
+          <option value="2027">2027 (5.0% phase-in)</option>
+          <option value="2028">2028 (10.0% phase-in)</option>
+          <option value="2029">2029 (22.5% phase-in)</option>
+          <option value="2030" selected>2030 (48.5% phase-in)</option>
+          <option value="2034">2034 (100% phase-in)</option>
+        </select>
+      </div>
+      
+      <div class="form-row" style="margin-bottom: 16px;">
+        <label class="field-label">EU ETS price (€/t CO₂)</label>
+        <div class="slider-row">
+          <input type="range" id="cbamPrice" min="50" max="150" step="1" value="75">
+          <span class="slider-val" id="cbamPriceVal">€75</span>
+        </div>
+      </div>
+      
+      <div style="background:var(--saffron-wash); padding:16px; border-radius:8px; text-align:center;">
+        <p class="mini-label" style="color:var(--saffron-deep);">Estimated Annual Cost</p>
+        <div style="font-family:var(--font-display); font-weight:800; font-size:32px; color:var(--saffron-deep); margin:4px 0;">
+          ₹<span id="cbamCost">0.00</span> <span style="font-size:18px;">cr</span>
+        </div>
+        <p id="cbamSavingsContainer" style="font-size:13px; color:var(--green); font-weight:600; margin-top:4px;">
+          Saves ₹<span id="cbamSavings">0.00</span> cr vs linear baseline
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <section class="grid-2-1 mt-24">
     <div class="stack">
       <article class="card viz-card">
         <p class="section-title">Impact contribution</p>
@@ -109,10 +162,12 @@
 (function () {
   const st = DC.loadState();
   const out = DC.compute(st);
+  const mc = DC.monteCarlo(st, 1000);
   const routes = DC.ROUTES[st.metal];
   const routeName = st.routeKey === routes.circular.key ? routes.circular.name : routes.linear.name;
   const metal = st.metal.charAt(0).toUpperCase() + st.metal.slice(1);
-  const region = { IN: "India grid", WORLD: "World grid", EU: "Europe grid" }[st.region];
+  const region = DC.gridName(st);
+  const mcRange = (lo, hi) => "p05-p95 " + DC.sig3(lo) + " - " + DC.sig3(hi);
 
   DC.$("#title").textContent = metal + " - " + routeName + " - " + region;
   DC.$("#heroGwp").textContent = DC.sig3(DC.tonnes(out.gwp));
@@ -121,17 +176,25 @@
   DC.$("#heroRoute").textContent = routeName;
 
   const kpis = [
-    { label: "Global warming", val: DC.tonnes(out.gwp), unit: "t CO<sub>2</sub>e / t", cls: "accent" },
-    { label: "Energy demand", val: out.energy, unit: "GJ / t", cls: "" },
-    { label: "Water use", val: out.water, unit: "m<sup>3</sup> / t", cls: "" },
-    { label: "Acidification", val: out.acid, unit: "kg SO<sub>2</sub>e / t", cls: "" },
+    { label: "Global warming", val: DC.tonnes(out.gwp), unit: "t CO<sub>2</sub>e / t", cls: "accent",
+      range: mcRange(DC.tonnes(mc.p05), DC.tonnes(mc.p95)) + " t" },
+    { label: "Energy demand", val: out.energy, unit: "GJ / t", cls: "", range: "point estimate" },
+    { label: "Water use", val: out.water, unit: "m<sup>3</sup> / t", cls: "",
+      range: mcRange(mc.p05 * DC.WATER_RATIO, mc.p95 * DC.WATER_RATIO) + " m<sup>3</sup>" },
+    { label: "Acidification", val: out.acid, unit: "kg SO<sub>2</sub>e / t", cls: "",
+      range: mcRange(mc.p05 * DC.ACID_RATIO, mc.p95 * DC.ACID_RATIO) + " kg" },
   ];
   DC.$("#kpis").innerHTML = kpis.map(k => `
     <article class="card kpi ${k.cls}">
       <p class="label">${k.label}</p>
       <p class="value">${DC.sig3(k.val)}<span class="unit">${k.unit}</span></p>
-      <p class="range">${DC.range(k.val)}</p>
+      <p class="range">${k.range}</p>
     </article>`).join("");
+
+  DC.histogram(DC.$("#uncertaintyHist"), mc.samples.map(DC.tonnes));
+  DC.$("#uncertaintyRange").textContent =
+    "GWP p05-p95: " + DC.sig3(DC.tonnes(mc.p05)) + " - " + DC.sig3(DC.tonnes(mc.p95)) +
+    " t CO2e/t. This range is recalculated on each load from independent grid, electricity and process-factor noise.";
 
   DC.stageBar(DC.$("#stageBar"), out.stages, out.gwp);
   DC.sankey(DC.$("#sankey"), st);
@@ -142,6 +205,49 @@
     <tr><td>${p.factor}</td>
         <td class="src"><a href="${p.url}" target="_blank" rel="noopener">${p.source}</a></td>
         <td>${p.year}</td></tr>`).join("");
+
+  // CBAM Export Exposure Logic
+  function updateCBAM() {
+    const tonnes = parseFloat(DC.$("#cbamTonnes").value) || 0;
+    const year = parseInt(DC.$("#cbamYear").value, 10);
+    const price = parseFloat(DC.$("#cbamPrice").value) || 0;
+    
+    const gwp_t = DC.tonnes(out.gwp);
+    const benchmark = DC.CBAM.benchmark[st.metal];
+    const phaseIn = DC.CBAM.phaseIn[year];
+    const eurToInr = DC.CBAM.eurToInr;
+    
+    // Cost for current scenario
+    const cost = Math.max(0, gwp_t - benchmark) * phaseIn * price * eurToInr * tonnes;
+    const costCr = cost / 1e7;
+    DC.$("#cbamCost").textContent = costCr.toFixed(2);
+    
+    // Cost for linear baseline to calculate savings
+    const presetLin = DC.PRESETS.find(x => x.metal === st.metal && x.chip === "linear") || DC.PRESETS[0];
+    const stLin = Object.assign({}, st, { routeKey: presetLin.routeKey, r: presetLin.r, cr: presetLin.cr });
+    const outLin = DC.compute(stLin);
+    const gwp_t_lin = DC.tonnes(outLin.gwp);
+    const costLin = Math.max(0, gwp_t_lin - benchmark) * phaseIn * price * eurToInr * tonnes;
+    const costLinCr = costLin / 1e7;
+    
+    const savings = costLinCr - costCr;
+    if (savings > 0.01) {
+      DC.$("#cbamSavings").textContent = savings.toFixed(2);
+      DC.$("#cbamSavingsContainer").style.display = "block";
+    } else {
+      DC.$("#cbamSavingsContainer").style.display = "none";
+    }
+  }
+
+  DC.$("#cbamTonnes").addEventListener("input", updateCBAM);
+  DC.$("#cbamYear").addEventListener("change", updateCBAM);
+  DC.$("#cbamPrice").addEventListener("input", function() {
+    DC.$("#cbamPriceVal").textContent = "€" + this.value;
+    updateCBAM();
+  });
+  
+  updateCBAM();
+
 })();
 </script>
 </body>

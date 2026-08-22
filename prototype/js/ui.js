@@ -120,6 +120,43 @@
     el.innerHTML = svg + `<p class="chart-note">${names.virgin} and scrap feed ${st.metal} production; end-of-life material either returns to the loop (green) or is lost (grey).</p>`;
   };
 
+  DC.histogram = function (el, samples) {
+    const values = (samples || []).filter(Number.isFinite);
+    if (!values.length) {
+      el.innerHTML = `<p class="chart-note">No uncertainty samples available.</p>`;
+      return;
+    }
+
+    const bins = 20, W = 720, H = 120, gap = 3;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = Math.max(max - min, 1e-9);
+    const counts = Array.from({ length: bins }, () => 0);
+    values.forEach(v => {
+      const idx = Math.min(bins - 1, Math.floor(((v - min) / span) * bins));
+      counts[idx]++;
+    });
+    const maxCount = Math.max(...counts, 1);
+    const barW = (W - gap * (bins - 1)) / bins;
+    const bars = counts.map((count, i) => {
+      const h = Math.max(2, (count / maxCount) * H);
+      const x = i * (barW + gap);
+      const y = H - h;
+      return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="var(--navy)" opacity=".82">
+        <title>${count} runs</title>
+      </rect>`;
+    }).join("");
+
+    el.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:120px;display:block" role="img" aria-label="Monte Carlo uncertainty histogram">
+        ${bars}
+      </svg>
+      <div class="row between chart-note" style="margin-top:8px">
+        <span>${DC.sig3(min)} t</span>
+        <span>${DC.sig3(max)} t</span>
+      </div>`;
+  };
+
   /* ---------- misc ---------- */
   DC.$ = s => document.querySelector(s);
   DC.pct = x => Math.round(x * 100) + "%";
@@ -127,8 +164,18 @@
     const routes = DC.ROUTES[st.metal];
     const route = (st.routeKey === routes.circular.key) ? routes.circular.name : routes.linear.name;
     const metal = st.metal.charAt(0).toUpperCase() + st.metal.slice(1);
-    const region = { IN: "India grid", WORLD: "World grid", EU: "Europe grid" }[st.region];
+    const region = DC.gridName(st);
     return metal + " — " + route + " · " + region;
+  };
+  DC.gridName = function (st) {
+    if (st.stateName && st.stateGrid != null) return st.stateName + " state grid";
+    return { IN: "India grid", WORLD: "World grid", EU: "Europe grid" }[st.region];
+  };
+  DC.gridDetailLabel = function (st) {
+    if (st.stateName && st.stateGrid != null) {
+      return st.stateName + " (" + DC.sig3(st.stateGrid) + " kg CO2/kWh, indicative)";
+    }
+    return DC.GRID[st.region].label;
   };
 
   /* Chrome/Edge: paint the filled part of range tracks (Firefox does it natively) */
