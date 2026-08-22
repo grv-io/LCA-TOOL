@@ -17,14 +17,18 @@
     const enRoute  = rt => rt.elec_kWh * DC.PRIMARY_ENERGY + rt.base_energy_GJ;    // GJ/t
 
     const blend = (a, b) => (1 - st.r) * a + st.r * b;
+    const knn = typeof DC.knnImpute === "function" ? DC.knnImpute(st) : null;
+    const elecDefault = knn ? knn.elec : blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
+    const finalElec = (st.elecOverride != null && isFinite(st.elecOverride)) ? st.elecOverride : elecDefault;
+
     let elec_kWh = blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
     let gwp = blend(gwpRoute(routes.linear), gwpRoute(routes.circular));
     let energy = blend(enRoute(routes.linear), enRoute(routes.circular));
 
-    if (st.elecOverride != null && isFinite(st.elecOverride)) {
-      gwp += (st.elecOverride - elec_kWh) * g;
-      energy += (st.elecOverride - elec_kWh) * DC.PRIMARY_ENERGY;
-      elec_kWh = st.elecOverride;
+    if (finalElec !== elec_kWh) {
+      gwp += (finalElec - elec_kWh) * g;
+      energy += (finalElec - elec_kWh) * DC.PRIMARY_ENERGY;
+      elec_kWh = finalElec;
     }
 
     const water = DC.WATER_RATIO * gwp;   // m3/t
@@ -47,7 +51,8 @@
     const routes = DC.ROUTES[st.metal];
     const g = gridEff(st.region, st.s, st.stateGrid);
     const blend = (a, b) => (1 - st.r) * a + st.r * b;
-    const elecDefault = blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
+    const knn = typeof DC.knnImpute === "function" ? DC.knnImpute(st) : null;
+    const elecDefault = knn ? knn.elec : blend(routes.linear.elec_kWh, routes.circular.elec_kWh);
     const elec = (st.elecOverride != null && isFinite(st.elecOverride)) ? st.elecOverride : elecDefault;
     const baseCO2 = blend(routes.linear.base_CO2_kg, routes.circular.base_CO2_kg);
     const gsd = 1.1;
@@ -209,5 +214,60 @@
     if (!metalFound || !routeFound) chips.push({ ok: 0, label: (metalFound ? "route" : "metal") + " — estimated from library" });
     chips.push({ ok: 0, label: "electricity — estimated from library" });
     return { state: out, chips };
+  };
+
+  /* U4 — k-NN imputer: predicts elec + thermal from nearest physics-generated scenarios */
+  DC.knnImpute = function (st) {
+    if (!DC.ML_ROWS || !DC.ML_ROWS.length) return null;
+
+    /* Feature vector: [metalIsAluminium, r, s, gridFactor] */
+    var gf = (st.stateGrid != null && isFinite(st.stateGrid))
+      ? Number(st.stateGrid) : DC.GRID[st.region].factor;
+    var query = [st.metal === "aluminium" ? 1 : 0, st.r, st.s, gf];
+
+    /* Normalize each feature to [0,1] using known domain ranges */
+    var mins  = [0, 0, 0, 0.18];
+    var maxes = [1, 1, 0.8, 0.92];
+    function norm(v, i) { return (v - mins[i]) / ((maxes[i] - mins[i]) || 1); }
+
+    /* Euclidean distance to every training row */
+    var dists = DC.ML_ROWS.map(function (row) {
+      var rv = [row.metal, row.r, row.s, row.gridFactor];
+      var sum = 0;
+      for (var i = 0; i < 4; i++) {
+        var d = norm(query[i], i) - norm(rv[i], i);
+        sum += d * d;
+      }
+      return { dist: Math.sqrt(sum), elec: row.elec, thermal: row.thermal };
+    });
+
+    /* Sort by distance, take k = 7 nearest */
+    dists.sort(function (a, b) { return a.dist - b.dist; });
+    var k = 7;
+    var nn = dists.slice(0, k);
+
+    /* Mean predictions */
+    var sumE = 0, sumT = 0;
+    for (var j = 0; j < k; j++) { sumE += nn[j].elec; sumT += nn[j].thermal; }
+    var meanElec = sumE / k;
+    var meanThermal = sumT / k;
+
+    /* Confidence = 1 - (stddev / mean), clamped [0.50, 0.99] */
+    var varE = 0, varT = 0;
+    for (var j = 0; j < k; j++) {
+      varE += (nn[j].elec - meanElec) * (nn[j].elec - meanElec);
+      varT += (nn[j].thermal - meanThermal) * (nn[j].thermal - meanThermal);
+    }
+    var stdElec = Math.sqrt(varE / k);
+    var stdThermal = Math.sqrt(varT / k);
+    var confElec = Math.max(0.50, Math.min(0.99, 1 - stdElec / (meanElec || 1)));
+    var confThermal = Math.max(0.50, Math.min(0.99, 1 - stdThermal / (meanThermal || 1)));
+
+    return {
+      elec: Math.round(meanElec),
+      thermal: Math.round(meanThermal),
+      confElec: confElec,
+      confThermal: confThermal
+    };
   };
 })();
