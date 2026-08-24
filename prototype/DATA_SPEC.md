@@ -25,6 +25,10 @@ The model is deliberately simple (one blended route + grid formula) but every co
 | aluminium | recycled | 800 | 350 | 8 |
 | steel | bf_bof | 120 | 2100 | 21 |
 | steel | eaf | 450 | 380 | 2 |
+| copper | primary | 3300 | 1900 | 28 |
+| copper | recycled | 900 | 500 | 6 |
+
+Copper values are indicative, from EF 3.1 / IDEMAT ranges (primary Cu ≈ 4.2 t CO₂e/t on the IN grid, recycled ≈ 1.1 t). Copper stage shares: linear 25/30/35/5/5, circular 0/12/72/10/6. Copper is OUTSIDE the current EU CBAM product scope (Reg. 2023/956) — the CBAM card shows a note instead of a cost.
 
 What base_CO2 contains (say this in Q&A): aluminium primary = anode CO₂ + PFC emissions + alumina refining thermal + mining/calcination/transport; steel BF-BOF = coke + blast furnace + BOF, which is why its electricity is small.
 
@@ -96,6 +100,8 @@ Defaults: region IN, s = 0.
 | 2 | Aluminium — Recycled | 1.00 | 0.70 | **0.92** | **16** | **3.7** | **4.6** | **0.83** |
 | 3 | Steel — BF-BOF | 0.00 | 0.25 | **2.19** | **22** | **8.7** | **10.9** | **0.20** |
 | 4 | Steel — EAF | 1.00 | 0.85 | **0.70** | **6.6** | **2.8** | **3.5** | **0.89** |
+| 5 | Copper — Primary | 0.00 | 0.30 | **4.24** | **62** | **17.0** | **21.2** | **0.22** |
+| 6 | Copper — Recycled | 1.00 | 0.80 | **1.14** | **15.3** | **4.6** | **5.7** | **0.87** |
 
 Hand-check example (preset 1): 14500 × 0.71 + 6300 = 16,595 kg ≈ 16.6 t ✓. If your build shows anything else, the bug is yours, not the spec's.
 
@@ -145,3 +151,19 @@ The "estimated" badges on the assess page use a k-nearest-neighbours model inste
 - Confidence = `1 − (stddev of neighbours / mean)`, clamped to [0.50, 0.99]
 
 **Behaviour:** Changing metal, route, state grid, or renewable share changes both the predicted value AND its confidence % dynamically. The badge text updates from e.g. `estimated · 91%` to `estimated · 84%` as the user changes inputs. When the user edits a field manually, the badge switches to `you` (unchanged from existing behaviour).
+
+## §9 Benchmarks (U8, "Where you stand" card)
+
+Indicative GWP benchmarks in t CO₂e/t, from IAI / worldsteel / EF 3.1 public summaries. Blend linear/circular by `r`, same as gwp. "best" = world best practice (hydro-powered Al smelters, high-scrap EAF).
+
+| metal | linear india | linear best | circular india | circular best |
+|---|---|---|---|---|
+| aluminium | 17.8 | 5.5 | 1.0 | 0.5 |
+| steel | 2.55 | 1.8 | 0.9 | 0.4 |
+| copper | 4.6 | 3.0 | 1.3 | 0.8 |
+
+## §10 Hindi toggle (U7) and scenario library (U9)
+
+- **U7:** `DC.I18N` in data.js maps ~54 static UI strings EN→HI. `ui.js` injects a `हिंदी`/`EN` link into the nav and swaps matching text nodes (reversible; re-applied after dynamic re-renders via MutationObserver). Numbers and dynamic sentences stay in English in v1.
+- **U9:** `DC.saveScenario/savedScenarios/loadScenario/deleteScenario` persist up to 20 scenarios in `localStorage` key `dc_saved`. Results page has a "Save scenario" button; the dashboard shows a "Saved scenarios" grid with Load/Delete.
+- **Note for U4 (k-NN):** the model is trained on aluminium/steel only. For copper, the assess page falls back to library defaults (no k-NN badge confidence). TODO: regenerate `ml_data.js` with copper rows and 3-way metal encoding.

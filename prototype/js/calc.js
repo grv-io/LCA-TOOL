@@ -176,6 +176,7 @@
 
     if (/alumini|aluminum/.test(t)) { out.metal = "aluminium"; metalFound = true; chips.push({ ok: 1, label: "aluminium ✓" }); }
     else if (/steel/.test(t)) { out.metal = "steel"; metalFound = true; chips.push({ ok: 1, label: "steel ✓" }); }
+    else if (/copper|tamba/.test(t)) { out.metal = "copper"; metalFound = true; chips.push({ ok: 1, label: "copper ✓" }); }
 
     const stateAliases = {
       odisha: "Odisha", orissa: "Odisha", jharkhand: "Jharkhand", chhattisgarh: "Chhattisgarh",

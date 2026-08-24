@@ -457,8 +457,8 @@
         </a>
       </div>
       <div class="home-proof" aria-label="Assessment coverage">
-        <span><strong>2 metals</strong>Aluminium and steel</span>
-        <span><strong>4 routes</strong>Primary, recycled, BF-BOF, EAF</span>
+        <span><strong>3 metals</strong>Aluminium, steel and copper</span>
+        <span><strong>6 routes</strong>Primary, recycled, BF-BOF, EAF</span>
         <span><strong>5 signals</strong>Carbon, energy, water, acidification, MCI</span>
       </div>
     </div>
@@ -471,6 +471,12 @@
 </section>
 
 <main class="wrap">
+  <section class="mt-40" id="savedSection" style="display:none" aria-label="Saved scenarios">
+    <p class="section-title">Scenario library</p>
+    <h3>Saved scenarios</h3>
+    <div class="grid-4 mt-16" id="savedGrid"></div>
+  </section>
+
   <section class="home-flow-section" aria-label="Workflow">
     <div class="home-flow">
       <div class="flow-step">
@@ -530,7 +536,9 @@
     1: { title: "Aluminium Primary", sub: "Hall-Heroult smelter · Odisha grid" },
     2: { title: "Aluminium Recycled", sub: "Scrap remelt route" },
     3: { title: "Steel BF-BOF", sub: "Blast furnace · integrated plant" },
-    4: { title: "Steel EAF", sub: "Electric arc · scrap charge" }
+    4: { title: "Steel EAF", sub: "Electric arc · scrap charge" },
+    5: { title: "Copper Primary", sub: "Pyromet route · concentrate smelting" },
+    6: { title: "Copper Recycled", sub: "Secondary refining · scrap anode" }
   };
   const wrap = DC.$("#presets");
   wrap.innerHTML = DC.PRESETS.map(p => {
@@ -569,6 +577,37 @@
     card.click();
   });
   DC.$("#sampleBtn").addEventListener("click", () => DC.applyPreset(1));
+
+  /* U9: scenario library */
+  function renderSaved() {
+    const list = DC.savedScenarios();
+    const section = DC.$("#savedSection");
+    if (!list.length) { section.style.display = "none"; return; }
+    section.style.display = "";
+    DC.$("#savedGrid").innerHTML = list.map(s => `
+      <article class="card" data-sid="${s.id}">
+        <h3 style="font-size:16px">${s.name}</h3>
+        <p class="small">${s.savedAt}</p>
+        <p class="mt-8" style="font-weight:700;font-variant-numeric:tabular-nums">
+          ${DC.sig3(s.gwp_t)} t CO<sub>2</sub>e / t &nbsp;·&nbsp; MCI ${s.mci.toFixed(2)}</p>
+        <div class="row mt-16">
+          <button class="btn btn-secondary load-scn" type="button" style="padding:6px 14px;font-size:14px">Load</button>
+          <button class="btn btn-secondary del-scn" type="button" style="padding:6px 14px;font-size:14px;color:var(--bad);border-color:var(--bad)">Delete</button>
+        </div>
+      </article>`).join("");
+  }
+  DC.$("#savedGrid").addEventListener("click", e => {
+    const card = e.target.closest("[data-sid]");
+    if (!card) return;
+    if (e.target.closest(".load-scn")) {
+      DC.loadScenario(card.dataset.sid);
+      location.href = "results.html";
+    } else if (e.target.closest(".del-scn")) {
+      DC.deleteScenario(card.dataset.sid);
+      renderSaved();
+    }
+  });
+  renderSaved();
 })();
 </script>
 </body>

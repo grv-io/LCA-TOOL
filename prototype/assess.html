@@ -84,6 +84,7 @@
           <select id="metal">
             <option value="aluminium">Aluminium</option>
             <option value="steel">Steel</option>
+            <option value="copper">Copper</option>
           </select>
         </div>
 
@@ -304,7 +305,8 @@
     const rs = DC.ROUTES[st.metal];
     const blend = (a, b) => Math.round((1 - st.r) * a + st.r * b);
     // U4: compute k-NN estimates for elec + thermal
-    window._knnResult = (typeof DC.knnImpute === "function") ? DC.knnImpute(st) : null;
+    // (model is trained on aluminium/steel only — copper falls back to library values)
+    window._knnResult = (st.metal !== "copper" && typeof DC.knnImpute === "function") ? DC.knnImpute(st) : null;
     const knn = window._knnResult;
     if (!keepOverride) {
       st.elecOverride = null;

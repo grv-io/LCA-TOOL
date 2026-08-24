@@ -38,10 +38,17 @@ DC.ROUTES = {
     circular: { key: "eaf",    name: "EAF",    elec_kWh: 450, base_CO2_kg: 380,  base_energy_GJ: 2 },
     flowNames: { virgin: "Iron ore", inter: "Hot metal", metal: "Steel" },
   },
+  /* U6 — indicative values from EF 3.1 / IDEMAT ranges: primary Cu ≈ 4.2 t CO2e/t on IN grid, recycled ≈ 1.1 t */
+  copper: {
+    linear:   { key: "primary",  name: "Primary",  elec_kWh: 3300, base_CO2_kg: 1900, base_energy_GJ: 28 },
+    circular: { key: "recycled", name: "Recycled", elec_kWh: 900,  base_CO2_kg: 500,  base_energy_GJ: 6 },
+    flowNames: { virgin: "Copper ore", inter: "Concentrate", metal: "Copper" },
+  },
 };
 
 /* Other display constants */
-DC.THERMAL_MJ = { aluminium: { linear: 42000, circular: 5500 }, steel: { linear: 17500, circular: 1400 } };
+DC.THERMAL_MJ = { aluminium: { linear: 42000, circular: 5500 }, steel: { linear: 17500, circular: 1400 },
+                  copper: { linear: 9000, circular: 2500 } };
 DC.TRANSPORT_TKM = 520;
 DC.WATER_RATIO = 0.004;   // m3 per kg CO2e
 DC.ACID_RATIO = 0.005;    // kg SO2e per kg CO2e
@@ -53,6 +60,16 @@ DC.STAGES = ["Mining", "Refining", "Smelting", "Casting", "Transport"];
 DC.STAGE_SHARE = {
   aluminium: { linear: [0.06, 0.24, 0.62, 0.04, 0.04], circular: [0.00, 0.10, 0.74, 0.10, 0.06] },
   steel:     { linear: [0.09, 0.14, 0.66, 0.06, 0.05], circular: [0.00, 0.08, 0.78, 0.09, 0.05] },
+  copper:    { linear: [0.25, 0.30, 0.35, 0.05, 0.05], circular: [0.00, 0.12, 0.72, 0.10, 0.06] },
+};
+
+/* U8 — benchmark GWP (t CO2e per t metal), indicative from IAI / worldsteel / EF 3.1 summaries.
+   "india" = typical Indian plant on today's grid; "best" = world best practice
+   (e.g. hydro-powered Al smelters, high-scrap EAF). Blend linear/circular by r. */
+DC.BENCHMARKS = {
+  aluminium: { linear: { india: 17.8, best: 5.5 }, circular: { india: 1.0, best: 0.5 } },
+  steel:     { linear: { india: 2.55, best: 1.8 }, circular: { india: 0.9,  best: 0.4 } },
+  copper:    { linear: { india: 4.6,  best: 3.0 }, circular: { india: 1.3,  best: 0.8 } },
 };
 
 /* §2 Provenance rows */
@@ -64,6 +81,7 @@ DC.PROVENANCE = [
   { factor: "Alumina refining & mining",        source: "EF 3.1 / ELCD",                     year: 2022, url: "https://eplca.jrc.ec.europa.eu", show: s => s.metal === "aluminium" },
   { factor: "Remelting route",                  source: "IDEMAT 2024, TU Delft",             year: 2024, url: "https://www.idematapp.com", show: s => s.metal === "aluminium" },
   { factor: "BF-BOF & EAF inventories",         source: "worldsteel LCI methodology",        year: 2023, url: "https://worldsteel.org", show: s => s.metal === "steel" },
+  { factor: "Copper primary & secondary routes", source: "EF 3.1 / IDEMAT 2024 (indicative)", year: 2024, url: "https://www.idematapp.com", show: s => s.metal === "copper" },
   { factor: "Transport factors",                source: "EF 3.1",                            year: 2022, url: "https://eplca.jrc.ec.europa.eu", show: () => true },
   { factor: "MCI methodology",                  source: "Ellen MacArthur Foundation, MCI v3", year: 2019, url: "https://www.ellenmacarthurfoundation.org", show: () => true },
 ];
@@ -78,6 +96,10 @@ DC.PRESETS = [
     title: "Steel — BF-BOF", sub: "Blast furnace · integrated plant", chip: "linear" },
   { id: 4, metal: "steel", routeKey: "eaf", region: "IN", r: 1.00, cr: 0.85, s: 0,
     title: "Steel — EAF", sub: "Electric arc · scrap charge", chip: "circular" },
+  { id: 5, metal: "copper", routeKey: "primary", region: "IN", r: 0.00, cr: 0.30, s: 0,
+    title: "Copper — Primary", sub: "Pyromet route · concentrate smelting", chip: "linear" },
+  { id: 6, metal: "copper", routeKey: "recycled", region: "IN", r: 1.00, cr: 0.80, s: 0,
+    title: "Copper — Recycled", sub: "Secondary refining · scrap anode", chip: "circular" },
 ];
 
 /* State handling (localStorage) */
@@ -104,10 +126,78 @@ DC.applyPreset = function (id) {
   return st;
 };
 
-/* CBAM Constants */
+/* CBAM Constants — note: copper is OUTSIDE the current CBAM product scope
+   (Regulation 2023/956 covers iron/steel, aluminium, cement, fertilisers,
+   electricity, hydrogen). benchmark has no copper key on purpose; the UI
+   shows an out-of-scope note instead of a cost. */
 DC.CBAM = {
   phaseIn: { 2026: 0.025, 2027: 0.05, 2028: 0.10, 2029: 0.225, 2030: 0.485, 2034: 1.0 },
   etsPriceEUR: 75,          // adjustable slider 50–100 €/t CO2
   eurToInr: 90,             // adjustable
   benchmark: { aluminium: 6.0, steel: 1.8 },  // indicative EU benchmark t CO2e/t; label "indicative"
+};
+
+/* ---------- U9: scenario library (localStorage) ---------- */
+DC.savedScenarios = function () {
+  try { return JSON.parse(localStorage.getItem("dc_saved") || "[]"); }
+  catch (e) { return []; }
+};
+DC.saveScenario = function (name, st) {
+  const list = DC.savedScenarios();
+  const out = DC.compute(st);
+  list.unshift({
+    id: "s" + (list.length ? Number(String(list[0].id).slice(1)) + 1 : 1),
+    name: name,
+    savedAt: new Date().toISOString().slice(0, 10),
+    state: { metal: st.metal, routeKey: st.routeKey, region: st.region,
+             stateName: st.stateName || null, stateGrid: st.stateGrid || null,
+             r: st.r, cr: st.cr, s: st.s, elecOverride: st.elecOverride,
+             baseline: st.baseline },
+    gwp_t: Math.round(DC.tonnes(out.gwp) * 100) / 100,
+    mci: Math.round(out.mci * 100) / 100,
+  });
+  localStorage.setItem("dc_saved", JSON.stringify(list.slice(0, 20)));
+  return list[0];
+};
+DC.deleteScenario = function (id) {
+  localStorage.setItem("dc_saved",
+    JSON.stringify(DC.savedScenarios().filter(x => x.id !== id)));
+};
+DC.loadScenario = function (id) {
+  const hit = DC.savedScenarios().find(x => x.id === id);
+  if (!hit) return null;
+  const st = Object.assign(DC.defaultState(), hit.state);
+  DC.saveState(st);
+  return st;
+};
+
+/* ---------- U7: UI strings, English -> Hindi ----------
+   Applied by a reversible text-node walker in ui.js. Static labels only;
+   dynamic sentences (recommendations, captions) stay English in v1. */
+DC.I18N = {
+  "Assess": "आकलन", "Results": "परिणाम", "Compare": "तुलना", "Report": "रिपोर्ट",
+  "Global warming": "ग्लोबल वार्मिंग", "Energy demand": "ऊर्जा मांग",
+  "Water use": "जल उपयोग", "Acidification": "अम्लीकरण",
+  "Start an assessment": "आकलन शुरू करें", "See a sample result": "नमूना परिणाम देखें",
+  "Compute assessment": "आकलन करें", "Read my description": "मेरा विवरण पढ़ें",
+  "Open report": "रिपोर्ट खोलें", "Back to results": "परिणाम पर वापस",
+  "Save as PDF": "PDF सहेजें", "Save scenario": "परिदृश्य सहेजें",
+  "Saved scenarios": "सहेजे गए परिदृश्य", "Load": "खोलें", "Delete": "हटाएं",
+  "Metal": "धातु", "Route": "मार्ग", "Region / grid": "क्षेत्र / ग्रिड",
+  "Recycled content": "पुनर्चक्रित सामग्री", "End-of-life recovery": "जीवन-अंत रिकवरी",
+  "Renewable share in electricity": "बिजली में नवीकरणीय हिस्सा",
+  "Renewable electricity": "नवीकरणीय बिजली",
+  "Electricity use": "बिजली खपत", "Thermal energy": "तापीय ऊर्जा", "Transport": "परिवहन",
+  "Aluminium": "एल्युमिनियम", "Steel": "इस्पात", "Copper": "तांबा",
+  "Mining": "खनन", "Refining": "शोधन", "Smelting": "प्रगलन", "Casting": "ढलाई",
+  "Material flow": "सामग्री प्रवाह", "Circularity": "चक्रीयता",
+  "Data provenance": "डेटा स्रोत", "Where it comes from": "उत्सर्जन कहाँ से",
+  "Where you stand": "आप कहाँ खड़े हैं",
+  "Assessment inputs": "आकलन इनपुट", "Process detail": "प्रक्रिया विवरण",
+  "Or just describe it": "या बस बता दीजिए", "Scenario inputs": "परिदृश्य इनपुट",
+  "Quick entry": "त्वरित प्रविष्टि", "linear": "रैखिक", "circular": "चक्रीय",
+  "Today - Linear": "आज - रैखिक", "With circularity - Yours": "चक्रीयता के साथ - आपका",
+  "Adjust circularity assumptions": "चक्रीयता के अनुमान बदलें",
+  "Live scenario controls": "लाइव नियंत्रण", "Baseline": "आधार रेखा",
+  "Circular pathway": "चक्रीय मार्ग",
 };

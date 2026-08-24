@@ -192,5 +192,88 @@
   }
   DC.repaintRanges = function () { document.querySelectorAll('input[type="range"]').forEach(paintRange); };
 
-  document.addEventListener("DOMContentLoaded", () => { paintMarks(); wireRanges(); });
+  /* ---------- U8: benchmark bar — your plant vs India average vs world best ---------- */
+  DC.benchmarkBar = function (el, st, yoursT) {
+    const b = DC.BENCHMARKS[st.metal];
+    if (!b) { el.innerHTML = ""; return; }
+    const blend = (a, c) => (1 - st.r) * a + st.r * c;
+    const india = blend(b.linear.india, b.circular.india);
+    const best = blend(b.linear.best, b.circular.best);
+    const rows = [
+      { label: "Your plant", val: yoursT, color: "var(--saffron)" },
+      { label: "India average", val: india, color: "var(--navy)" },
+      { label: "World best practice", val: best, color: "var(--green)" },
+    ];
+    const max = Math.max(...rows.map(r => r.val), 0.001);
+    el.innerHTML = rows.map(r => `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
+        <span style="width:150px;font-size:13px;color:var(--ink-soft);">${r.label}</span>
+        <div style="flex:1;background:var(--line);border-radius:4px;height:16px;overflow:hidden;">
+          <div style="width:${Math.max(2, r.val / max * 100).toFixed(1)}%;height:100%;background:${r.color};border-radius:4px;"></div>
+        </div>
+        <span style="width:64px;text-align:right;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;">${DC.sig3(r.val)} t</span>
+      </div>`).join("") +
+      `<p class="chart-note">t CO₂e per tonne of metal at your recycled-content mix. Benchmarks indicative — IAI · worldsteel · EF 3.1 summaries.</p>`;
+  };
+
+  /* ---------- U7: Hindi / English toggle ----------
+     Reversible text-node walker over DC.I18N. Static labels only; numbers and
+     dynamic sentences stay as-is. Re-applies after re-renders via MutationObserver. */
+  let i18nApplying = false;
+  let i18nTimer = null;
+  const I18N_REV = {};
+  function i18nMaps() {
+    if (!Object.keys(I18N_REV).length) {
+      Object.keys(DC.I18N || {}).forEach(k => { I18N_REV[DC.I18N[k]] = k; });
+    }
+  }
+  function walkText(map) {
+    const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = tw.nextNode())) {
+      const raw = n.nodeValue;
+      const key = raw.trim();
+      if (key && map[key] !== undefined) {
+        n.nodeValue = raw.replace(key, map[key]);
+      }
+    }
+  }
+  DC.currentLang = function () {
+    try { return localStorage.getItem("dc_lang") || "en"; } catch (e) { return "en"; }
+  };
+  DC.applyLang = function (lang) {
+    i18nMaps();
+    i18nApplying = true;
+    if (lang === "hi") { walkText(I18N_REV); walkText(DC.I18N); }  /* normalize then translate */
+    else { walkText(I18N_REV); }
+    const t = document.getElementById("langToggle");
+    if (t) t.textContent = lang === "hi" ? "EN" : "हिंदी";
+    setTimeout(() => { i18nApplying = false; }, 0);
+  };
+  function initLang() {
+    const nav = document.querySelector(".nav");
+    if (nav && !document.getElementById("langToggle")) {
+      const a = document.createElement("a");
+      a.href = "#"; a.id = "langToggle";
+      a.setAttribute("aria-label", "Switch language");
+      a.textContent = "हिंदी";
+      a.addEventListener("click", e => {
+        e.preventDefault();
+        const next = DC.currentLang() === "hi" ? "en" : "hi";
+        try { localStorage.setItem("dc_lang", next); } catch (err) {}
+        DC.applyLang(next);
+      });
+      nav.appendChild(a);
+    }
+    if (DC.currentLang() === "hi") DC.applyLang("hi");
+    /* keep Hindi applied when pages re-render dynamic sections */
+    const obs = new MutationObserver(() => {
+      if (i18nApplying || DC.currentLang() !== "hi") return;
+      clearTimeout(i18nTimer);
+      i18nTimer = setTimeout(() => DC.applyLang("hi"), 120);
+    });
+    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => { paintMarks(); wireRanges(); initLang(); });
 })();

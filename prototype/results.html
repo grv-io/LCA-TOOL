@@ -33,6 +33,10 @@
       <p>Review impact intensity, stage contribution, material flow and data provenance for the selected route.</p>
     </div>
     <div class="page-actions">
+      <button class="btn btn-secondary" id="saveScenarioBtn" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z M9 4v5h6V4 M8 13h8v7H8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Save scenario
+      </button>
       <a class="btn btn-secondary" href="report.html">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5M9 13h6M9 17h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Open report
@@ -121,6 +125,11 @@
         <h3>Material flow</h3>
         <div class="mt-16" id="sankey"></div>
       </article>
+      <article class="card viz-card">
+        <p class="section-title">Benchmarking</p>
+        <h3>Where you stand</h3>
+        <div class="mt-16" id="benchmarkBar"></div>
+      </article>
     </div>
     <aside class="stack">
       <article class="card center">
@@ -198,6 +207,14 @@
 
   DC.stageBar(DC.$("#stageBar"), out.stages, out.gwp);
   DC.sankey(DC.$("#sankey"), st);
+  DC.benchmarkBar(DC.$("#benchmarkBar"), st, DC.tonnes(out.gwp));
+
+  /* U9: save scenario to the library */
+  DC.$("#saveScenarioBtn").addEventListener("click", function () {
+    const saved = DC.saveScenario(DC.scenarioTitle(st), st);
+    this.textContent = "Saved: " + saved.name.split(" · ")[0];
+    this.disabled = true;
+  });
   DC.gauge(DC.$("#gauge"), out.mci, 180);
   DC.$("#mciSentence").textContent = DC.mciSentence(out.mci);
 
@@ -208,6 +225,16 @@
 
   // CBAM Export Exposure Logic
   function updateCBAM() {
+    // Copper is outside the current CBAM product scope (Reg. 2023/956) — show a note, not a cost.
+    if (DC.CBAM.benchmark[st.metal] === undefined) {
+      const costEl = DC.$("#cbamCost");
+      if (!costEl) return;   // note already rendered on a previous call
+      costEl.parentElement.innerHTML =
+        '<span style="font-size:14px;font-weight:500;color:var(--ink-soft)">' +
+        'Copper is outside the current CBAM product scope (Regulation 2023/956 covers iron/steel, aluminium, cement, fertilisers, electricity, hydrogen). No border levy applies today.</span>';
+      DC.$("#cbamSavingsContainer").style.display = "none";
+      return;
+    }
     const tonnes = parseFloat(DC.$("#cbamTonnes").value) || 0;
     const year = parseInt(DC.$("#cbamYear").value, 10);
     const price = parseFloat(DC.$("#cbamPrice").value) || 0;
