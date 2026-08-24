@@ -192,54 +192,77 @@ set_runs(p, [("Idea:  ", {"bold": True, "size": 15, "color": INK}),
 # ============================================================ SLIDE 2 — IDEA
 caption_pointer(s2, "Proposed Solution (Describe your Idea/Solution/Prototype)  ·  How it addresses the problem  ·  Innovation and uniqueness of the solution")
 
-b = box(s2, 0.4, 1.42, 7.55, 1.02, fill=SAFFRON_WASH, line=SAFFRON, line_w=1.2)
-tf = b.text_frame
-set_runs(tf.paragraphs[0], [("DhatuChakra ", {"bold": True, "size": 22, "color": SAFFRON_DEEP, "font": HEAD}),
-                            ("(धातुचक्र)", {"size": 16, "color": INK, "font": "Nirmala UI"})], space_after=1)
-p = tf.add_paragraph()
-set_runs(p, [("AI-assisted life-cycle assessment & circularity engine for Indian metals — 5 inputs in, ISO-14044-style answers out.",
-              {"size": 11.5, "color": INK})])
+# --- Row 1: the basics primer (reviewers may not know the domain) ---
+_primer = [
+    ("WHAT IS LCA?", NAVY, NAVY_WASH,
+     "Life Cycle Assessment totals a product's environmental cost across its life. "
+     "Core method:  Impact = Σ (quantity × emission factor). "
+     "We compute it cradle-to-gate, per tonne of metal."),
+    ("WHAT IS CIRCULARITY?", GREEN, GREEN_WASH,
+     "How much material loops back (scrap, recycling) instead of being mined and landfilled. "
+     "Scored 0→1 by the Material Circularity Indicator (Ellen MacArthur): 0 = fully linear, 1 = fully circular."),
+    ("WHY METALS, WHY NOW?", SAFFRON_DEEP, SAFFRON_WASH,
+     "Metals ≈ 8% of global CO₂. India: circular-economy policy + National Critical Mineral Mission. "
+     "EU CBAM taxes embedded carbon in steel/aluminium exports from 2026."),
+]
+px = 0.4
+for t2, col2, wash2, body2 in _primer:
+    b = box(s2, px, 1.40, 4.11, 1.24, fill=wash2, line=col2, line_w=1.0)
+    tf = b.text_frame
+    set_runs(tf.paragraphs[0], [(t2, {"bold": True, "size": 11, "color": col2, "font": HEAD})], space_after=2)
+    p = tf.add_paragraph()
+    set_runs(p, [(body2, {"size": 9.3, "color": INK})])
+    px += 4.21
 
-b = box(s2, 8.15, 1.42, 4.78, 1.02, fill=NAVY_WASH, line=NAVY, line_w=1.0)
+# --- Row 2: brand band + links ---
+b = box(s2, 0.4, 2.76, 7.55, 0.86, fill=SAFFRON_WASH, line=SAFFRON, line_w=1.2)
 tf = b.text_frame
-set_runs(tf.paragraphs[0], [("Working prototype — see it run", {"bold": True, "size": 11, "color": NAVY})], space_after=2)
+set_runs(tf.paragraphs[0], [("DhatuChakra ", {"bold": True, "size": 17, "color": SAFFRON_DEEP, "font": HEAD}),
+                            ("(धातुचक्र)  ", {"size": 13, "color": INK, "font": "Nirmala UI"}),
+                            ("— AI-assisted LCA & circularity engine for Indian metals: 5 inputs in, ISO-14044-style answers out.",
+                             {"size": 10.5, "color": INK})])
+
+b = box(s2, 8.15, 2.76, 4.78, 0.86, fill=NAVY_WASH, line=NAVY, line_w=1.0)
+tf = b.text_frame
+tf.margin_top = IN(0.04)
 _links2 = [
     ("Demo video:  ", "<add link>", None),
     ("Documentation:  ", "LCA-TOOL/docs · technical PDF", DOC_URL),
     ("Code + prototype:  ", "github.com/grv-io/LCA-TOOL", REPO_URL),
 ]
+first2 = True
 for lead, val, url in _links2:
-    p = tf.add_paragraph()
-    st2 = {"italic": url is None, "size": 10.5, "color": SAFFRON_DEEP if url else SOFT}
+    p = para(tf, first2)
+    first2 = False
+    st2 = {"italic": url is None, "size": 9.5, "color": SAFFRON_DEEP if url else SOFT}
     if url: st2["link"] = url
-    set_runs(p, [("▸ ", {"color": SAFFRON_DEEP, "bold": True, "size": 10.5}),
-                 (lead, {"bold": True, "size": 10.5, "color": INK}),
+    set_runs(p, [("▸ ", {"color": SAFFRON_DEEP, "bold": True, "size": 9.5}),
+                 (lead, {"bold": True, "size": 9.5, "color": INK}),
                  (val, st2)], space_after=1)
 
-b = box(s2, 0.4, 2.62, 6.1, 4.12, fill=WHITE, line=LINE, line_w=1)
+# --- Row 3: problem/solution + innovation ---
+b = box(s2, 0.4, 3.76, 6.1, 3.02, fill=WHITE, line=LINE, line_w=1)
 tf = b.text_frame
-heading(tf, "The problem → our solution")
+heading(tf, "The problem → our solution", size=13, after=4)
 bullets(tf, [
-    ("LCA today is out of reach: ", "25+ process parameters, database licences (ecoinvent ≈ €4,000/yr), weeks of consultants — most Indian plants simply skip it"),
-    ("DhatuChakra needs 5–8 inputs ", "— or one plain sentence (\"aluminium smelter in Odisha, 40% scrap\"); an LLM parses it into a structured scenario"),
-    ("AI fills every missing parameter ", "with a confidence score — estimates are visibly flagged, never hidden"),
-    ("Full picture per tonne: ", "GWP, energy, water, acidification + Material Circularity Indicator (Ellen MacArthur v3)"),
-    ("Decision tool, not a calculator: ", "linear-vs-circular compare with live sliders + auditable PDF report"),
-], size=11.5, gap=7)
+    ("Conventional LCA is out of reach: ", "25+ parameters, database licences ≈ €4,000/yr, weeks of consultants — most Indian plants skip it"),
+    ("DhatuChakra needs 5–8 inputs ", "or one plain sentence (\"aluminium smelter in Odisha, 40% scrap\") → full profile in seconds"),
+    ("AI fills the missing parameters ", "with visible confidence scores — estimates flagged, never hidden, always overridable"),
+    ("Output per tonne: ", "GWP · energy · water · acidification + MCI, live linear-vs-circular compare, auditable PDF report"),
+], size=10.5, gap=5)
 
-b = box(s2, 6.8, 2.62, 6.13, 4.12, fill=WHITE, line=LINE, line_w=1)
+b = box(s2, 6.8, 3.76, 6.13, 3.02, fill=WHITE, line=LINE, line_w=1)
 tf = b.text_frame
-heading(tf, "Innovation & uniqueness")
+heading(tf, "Innovation & uniqueness", size=13, after=4)
 bullets(tf, [
-    ("Not a black box: ", "every figure traces to a cited public factor — source, year, region shown in-app"),
-    ("India-first: ", "clickable state-grid map (CEA-derived: Himachal 0.18 → Chhattisgarh 0.92 kg CO₂/kWh) + CBAM export cost in ₹ crore"),
-    ("Uncertainty built in: ", "real 1,000-run Monte Carlo in the prototype — p05–p95 range + histogram on every result"),
-    ("Instant what-if: ", "surrogate model answers sliders in milliseconds — prototype already proves the UX"),
-    ("₹0 data cost: ", "built entirely on free public inventories (IAI, worldsteel, EF 3.1, IDEMAT, US LCI)"),
-], size=11.5, gap=6)
+    ("Not a black box: ", "every figure traces to a cited public source (CEA, IAI, worldsteel, EF 3.1) — shown in-app"),
+    ("India-first: ", "clickable state-grid map (Himachal 0.18 → Chhattisgarh 0.92 kg CO₂/kWh) + CBAM export cost in ₹ crore"),
+    ("Real statistics, real ML: ", "1,000-run Monte Carlo (p05–p95 on every result) + k-NN imputer with honest confidence"),
+    ("₹0 data cost: ", "built entirely on free public inventories — no ecoinvent licence anywhere"),
+], size=10.5, gap=5)
 p = tf.add_paragraph()
-set_runs(p, [("Verified: recycled aluminium route = 16.6 → 0.92 t CO₂e/t (−94%), inside IAI published ranges.",
-              {"bold": True, "size": 11, "color": GREEN})])
+set_runs(p, [("Verified: recycled aluminium = 16.6 → 0.92 t CO₂e/t (−94%), inside IAI published ranges.",
+              {"bold": True, "size": 10.5, "color": GREEN})])
 
 # ============================================================ SLIDE 3 — TECHNICAL
 caption_pointer(s3, "Technologies to be used (programming languages, frameworks, hardware)  ·  Methodology and process for implementation (Flow Charts / Images / working prototype)")
@@ -301,24 +324,70 @@ diagram_box(s3, 7.38, y2, 2.6, h2, "Results / tonne", "GWP · energy · water ·
 arrow(s3, 7.04, y2 + 0.38, direction="left")
 diagram_box(s3, 4.25, y2, 2.7, h2, "Dashboard & report", "Sankey · compare sliders · recommendations · PDF", WHITE, NAVY)
 
-t = txt(s3, 4.25, 5.85, 8.65, 0.9)
-tf = t.text_frame
-set_runs(tf.paragraphs[0], [("Working prototype (this exact methodology, client-side):  ", {"bold": True, "size": 11, "color": INK}),
-                            ("demo video — <add link>   ·   ", {"italic": True, "size": 11, "color": SAFFRON_DEEP}),
-                            ("technical documentation (PDF in repo)", {"size": 11, "color": SAFFRON_DEEP, "link": DOC_URL})])
+# status strip: what exists today vs what the full build adds
+b = box(s3, 4.25, 5.74, 4.25, 1.04, fill=GREEN_WASH, line=GREEN, line_w=1.0)
+tf = b.text_frame
+tf.margin_top = IN(0.04)
+set_runs(tf.paragraphs[0], [("IMPLEMENTED TODAY  ✓", {"bold": True, "size": 10.5, "color": GREEN, "font": HEAD})], space_after=2)
+p = tf.add_paragraph()
+set_runs(p, [("3 metals · 6 scenarios · state-grid map · k-NN imputer · 1,000-run Monte Carlo · CBAM ₹ calculator · "
+              "MCI chakra · benchmarks · Hindi UI · report — offline, zero backend",
+              {"size": 9.2, "color": INK})])
+
+b = box(s3, 8.62, 5.74, 4.28, 1.04, fill=NAVY_WASH, line=NAVY, line_w=1.0)
+tf = b.text_frame
+tf.margin_top = IN(0.04)
+set_runs(tf.paragraphs[0], [("FULL BUILD  (planned, spec ready)", {"bold": True, "size": 10.5, "color": NAVY, "font": HEAD})], space_after=2)
+p = tf.add_paragraph()
+set_runs(p, [("Brightway2.5 matrix LCA · LightGBM imputer · LLM parser · FastAPI + PostgreSQL — full details: ",
+              {"size": 9.2, "color": INK}),
+             ("technical PDF", {"size": 9.2, "color": SAFFRON_DEEP, "link": DOC_URL}),
+             ("  ·  demo video — <add link>", {"italic": True, "size": 9.2, "color": SOFT})])
 
 # ============================================================ SLIDE 4 — FEASIBILITY
 caption_pointer(s4, "Analysis of the feasibility of the idea  ·  Potential challenges and risks  ·  Strategies for overcoming these challenges")
 
 b = box(s4, 0.4, 1.48, 5.0, 5.3, fill=WHITE, line=LINE, line_w=1)
 tf = b.text_frame
-heading(tf, "Why this is buildable")
+heading(tf, "Why this is buildable", size=13, after=4)
 bullets(tf, [
-    ("100% free data — ", "IAI, worldsteel, CEA, EF 3.1, IDEMAT, US LCI: no paid-licence blocker anywhere in the pipeline"),
-    ("Already validated: ", "prototype outputs 16.6 / 0.92 / 2.19 / 0.70 t CO₂e/t (Al primary · Al recycled · BF-BOF · EAF) sit inside published ranges — IAI 16–20 & 0.5–1.5, worldsteel 1.9–2.4 & 0.4–1.0"),
-    ("Working prototype live ", "— 3 metals, state-grid map, k-NN imputer, Monte Carlo, CBAM calculator, Hindi UI; 4-week full-build plan written"),
-    ("ML needs no scarce dataset — ", "imputer & surrogate train on physics-generated scenarios from our own engine"),
-], size=11.5, gap=8)
+    ("100% free data — ", "IAI, worldsteel, CEA, EF 3.1, IDEMAT: no paid-licence blocker anywhere in the pipeline"),
+    ("Working prototype live — ", "3 metals, state-grid map, k-NN imputer, Monte Carlo, CBAM, Hindi UI; full-build plan written"),
+    ("ML needs no scarce dataset — ", "the imputer trains on physics-generated scenarios from our own engine"),
+], size=10.5, gap=5)
+p = tf.add_paragraph()
+set_runs(p, [("Validated against published values (t CO₂e / t metal):", {"bold": True, "size": 10.5, "color": NAVY})])
+
+_val_rows = [
+    ("Route", "Ours", "Published range"),
+    ("Aluminium — primary (IN grid)", "16.6", "16–20 (IAI)"),
+    ("Aluminium — recycled", "0.92", "0.5–1.5 (IAI)"),
+    ("Steel — BF-BOF", "2.19", "1.9–2.4 (worldsteel)"),
+    ("Steel — EAF (scrap)", "0.70", "0.4–1.0 (worldsteel)"),
+    ("Copper — primary", "4.24", "≈4.2 (EF 3.1, indic.)"),
+]
+vtbl = s4.shapes.add_table(len(_val_rows), 3, IN(0.58), IN(4.02), IN(4.66), IN(2.55)).table
+vtbl.columns[0].width = IN(2.28)
+vtbl.columns[1].width = IN(0.72)
+vtbl.columns[2].width = IN(1.66)
+for ri, row in enumerate(_val_rows):
+    for ci, val in enumerate(row):
+        cell = vtbl.cell(ri, ci)
+        cell.margin_left = IN(0.06)
+        cell.margin_right = IN(0.04)
+        cell.margin_top = IN(0.02)
+        cell.margin_bottom = IN(0.02)
+        cell.vertical_anchor = MSO_ANCHOR.MIDDLE
+        tfc = cell.text_frame
+        tfc.word_wrap = True
+        if ri == 0:
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = NAVY
+            set_runs(tfc.paragraphs[0], [(val, {"bold": True, "size": 9.5, "color": WHITE, "font": HEAD})])
+        else:
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = WHITE
+            set_runs(tfc.paragraphs[0], [(val, {"size": 9.5, "color": INK if ci == 0 else (GREEN if ci == 1 else SOFT), "bold": ci == 1})])
 
 tbl_x, tbl_y, tbl_w = 5.7, 1.48, 7.2
 rows_data = [
@@ -327,7 +396,7 @@ rows_data = [
     ("Wrong numbers = zero credibility", "Validation suite vs IAI / worldsteel published values runs on every change; < 10% error target"),
     ("\u201CAI is a black box\u201D objection", "Confidence score on every estimate + provenance table + uncertainty ranges on screen"),
     ("Users can't fill 25+ parameters", "Plain-English entry + AI imputation — only 5–8 inputs needed"),
-    ("Scope creep in hackathon time", "v1 locked: Al + steel, 4 impact categories; copper & Brightway as stretch"),
+    ("Scope creep in hackathon time", "v1 scope locked and SHIPPED: 3 metals, 4 impact categories; Brightway2.5 swap reserved for full build"),
 ]
 tbl = s4.shapes.add_table(len(rows_data), 2, IN(tbl_x), IN(tbl_y), IN(tbl_w), IN(5.3)).table
 tbl.columns[0].width = IN(2.55)
