@@ -374,22 +374,6 @@
   }
 
   @media (max-width: 760px) {
-    .home-page .site-header .wrap {
-      align-items: flex-start;
-      gap: 14px;
-    }
-    .home-page .brand {
-      flex-wrap: wrap;
-      row-gap: 2px;
-    }
-    .home-page .brand .word { font-size: 21px; }
-    .home-page .brand .dev { width: 100%; margin-left: 34px; }
-    .home-page .nav {
-      gap: 12px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      font-size: 14px;
-    }
     .home-hero h1 { font-size: 38px; }
     .home-hero .sub { font-size: 18px; }
     .home-proof,
@@ -413,11 +397,31 @@
   }
 
   @media (max-width: 620px) {
+    .home-page .wrap {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
     .home-page .site-header .wrap {
       flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .home-page .brand {
+      flex-wrap: wrap;
+      justify-content: center;
+      row-gap: 2px;
+      width: 100%;
+    }
+    .home-page .brand .word { font-size: 21px; }
+    .home-page .brand .dev { 
+      width: 100%; 
+      margin-left: 0; 
+      text-align: center; 
     }
     .home-page .nav {
-      justify-content: flex-start;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 8px;
     }
   }
 </style>
