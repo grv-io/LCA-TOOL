@@ -1,0 +1,372 @@
+% DhatuChakra — Technical Documentation
+% Compile: pdflatex (Overleaf: just upload this file and click Recompile)
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.4cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[hidelinks,colorlinks=true,linkcolor=navy,urlcolor=saffron]{hyperref}
+\usepackage{fancyhdr}
+
+% Brand palette
+\definecolor{saffron}{HTML}{B84E0A}
+\definecolor{navy}{HTML}{24466E}
+\definecolor{green}{HTML}{17803D}
+\definecolor{inksoft}{HTML}{5A6B7B}
+
+\titleformat{\section}{\Large\bfseries\color{navy}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\large\bfseries\color{navy}}{\thesubsection}{0.8em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{inksoft}DhatuChakra --- Technical Documentation}
+\fancyhead[R]{\small\color{inksoft}Smart India Hackathon $\cdot$ Problem \#48}
+\fancyfoot[C]{\small\thepage}
+
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+% ---------------- Title ----------------
+\begin{center}
+  {\Huge\bfseries\color{saffron} DhatuChakra}\\[2pt]
+  {\large\color{inksoft} (Dhatu = metal $\cdot$ Chakra = the wheel)}\\[8pt]
+  {\LARGE\bfseries AI-Driven Life Cycle Assessment \& Circularity\\Engine for Indian Metals}\\[10pt]
+  {\normalsize Technical Documentation --- Working Prototype v1}\\[2pt]
+  {\normalsize\color{inksoft} Smart India Hackathon (Internal Round) $\cdot$ Problem Statement \#48 $\cdot$ Ministry of Mines}\\[2pt]
+  {\normalsize\color{inksoft} Repository: \url{https://github.com/grv-io/LCA-TOOL}}
+\end{center}
+
+\vspace{4pt}
+\hrule
+\vspace{10pt}
+
+\tableofcontents
+
+% ================================================================
+\section{Problem and Motivation}
+
+Life Cycle Assessment (LCA) is the standard method for quantifying the environmental
+footprint of metal production, and circularity indicators are becoming central to both
+national policy (National Critical Mineral Mission, circular-economy frameworks) and
+trade (the EU Carbon Border Adjustment Mechanism). In practice, however, LCA is out of
+reach for most Indian plants:
+
+\begin{itemize}[leftmargin=1.4em, itemsep=1pt]
+  \item a conventional study needs \textbf{25+ process parameters} most plants do not track;
+  \item commercial inventory databases (e.g.\ ecoinvent) cost $\approx$ \texteuro 4{,}000 per year;
+  \item consultant-led studies take weeks and are not comparable across plants;
+  \item global tools ignore Indian conditions (grid intensity, state-level variation, domestic data sources).
+\end{itemize}
+
+\textbf{DhatuChakra} answers this with a tool that needs only 5--8 inputs (or one plain
+sentence), fills the remaining parameters with a machine-learning imputer that reports its
+own confidence, and returns a full impact and circularity profile with quantified
+uncertainty --- every number traceable to a cited public source.
+
+% ================================================================
+\section{System Overview}
+
+\subsection{What the prototype does}
+\begin{enumerate}[leftmargin=1.6em, itemsep=1pt]
+  \item \textbf{Scenario input} --- metal (aluminium, steel, copper), production route,
+        region or Indian state grid, recycled content, end-of-life recovery, renewable
+        electricity share; optionally a plain-English description parsed by keyword matching.
+  \item \textbf{Parameter estimation} --- a $k$-nearest-neighbours model predicts electricity
+        and thermal-energy intensity with a real confidence score; every estimated field is
+        visibly flagged and user-overridable.
+  \item \textbf{Impact computation} --- GWP (kg CO$_2$e), cumulative energy (GJ), water
+        (m$^3$) and acidification (kg SO$_2$e) per tonne of metal, cradle-to-gate.
+  \item \textbf{Uncertainty} --- a 1{,}000-run Monte Carlo simulation produces p05--p95
+        ranges and a histogram.
+  \item \textbf{Circularity} --- the Material Circularity Indicator (Ellen MacArthur
+        Foundation methodology), rendered as a 24-spoke chakra gauge.
+  \item \textbf{Decision support} --- linear-vs-circular comparison with live sliders,
+        benchmark strip (your plant vs India average vs world best practice), CBAM
+        export-cost calculator, rule-based recommendations that cite the user's own numbers,
+        and an ISO-14044-style printable report.
+\end{enumerate}
+
+\subsection{Architecture}
+
+The prototype is a fully client-side web application (HTML/CSS/JavaScript, no backend, no
+external libraries; runs offline). The calculation engine, ML model and all data tables are
+transparent, inspectable files:
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Module} & \textbf{Responsibility} \\
+\midrule
+\texttt{js/data.js}    & All constants: routes, grids, benchmarks, CBAM, presets (single source of truth) \\
+\texttt{js/calc.js}    & Engine: impact formulas, MCI, Monte Carlo, recommendations, text parser \\
+\texttt{js/ml\_data.js} & 500 physics-generated training rows for the $k$-NN imputer \\
+\texttt{js/ui.js}      & Rendering: chakra gauge, Sankey, stage bar, histogram, benchmarks, Hindi toggle \\
+5 HTML pages           & Dashboard, Assess, Results, Compare, Report \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Flow: \emph{user input} $\rightarrow$ \emph{parser} $\rightarrow$ \emph{$k$-NN imputer
+(+confidence)} $\rightarrow$ \emph{LCA engine $\times$ factor library} $\rightarrow$
+\emph{Monte Carlo} $\rightarrow$ \emph{results, MCI, benchmarks, CBAM, recommendations,
+report}.
+
+The full production build (designed, archived in the repository) replaces the factor engine
+with Brightway2.5, the $k$-NN with quantile-gradient-boosting imputation, and the keyword
+parser with an LLM parser --- behind a FastAPI backend with PostgreSQL.
+
+% ================================================================
+\section{Calculation Methodology}
+
+\subsection{Functional unit and boundary}
+The functional unit is \textbf{one tonne of metal at plant gate}; the system boundary is
+\textbf{cradle-to-gate}. The model is attributional.
+
+\subsection{Impact model}
+For each metal a linear (primary) and circular (secondary) route is parameterised by
+electricity intensity $E$ (kWh/t), non-electric base emissions $B$ (kg CO$_2$e/t) and base
+energy $G$ (GJ/t). With recycled content $r \in [0,1]$, renewable electricity share
+$s \in [0,1]$ and grid intensity $g_0$ (kg CO$_2$e/kWh):
+
+\begin{align}
+g_{\mathrm{eff}} &= g_0\,(1-s) + 0.04\,s\\
+\mathrm{GWP} &= (1-r)\,\big(E_{\mathrm{lin}}\, g_{\mathrm{eff}} + B_{\mathrm{lin}}\big)
+              + r\,\big(E_{\mathrm{circ}}\, g_{\mathrm{eff}} + B_{\mathrm{circ}}\big)\\
+\mathrm{Energy} &= (1-r)\,\big(0.0103\,E_{\mathrm{lin}} + G_{\mathrm{lin}}\big)
+                 + r\,\big(0.0103\,E_{\mathrm{circ}} + G_{\mathrm{circ}}\big)\\
+\mathrm{Water} &= 0.004 \cdot \mathrm{GWP} \qquad
+\mathrm{Acidification} = 0.005 \cdot \mathrm{GWP}
+\end{align}
+
+where $0.04$ is the life-cycle intensity of the renewable mix and $0.0103$ GJ/kWh the
+primary-energy factor including generation losses. Route parameters:
+
+\begin{center}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+\textbf{Metal} & \textbf{Route} & $E$ (kWh/t) & $B$ (kg CO$_2$e/t) & $G$ (GJ/t) \\
+\midrule
+Aluminium & Primary (Hall--H\'eroult) & 14{,}500 & 6{,}300 & 50 \\
+Aluminium & Recycled (remelt)         & 800      & 350     & 8  \\
+Steel     & BF--BOF                   & 120      & 2{,}100 & 21 \\
+Steel     & EAF (scrap)               & 450      & 380     & 2  \\
+Copper    & Primary (pyromet.)        & 3{,}300  & 1{,}900 & 28 \\
+Copper    & Recycled (secondary)      & 900      & 500     & 6  \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+$B$ for primary aluminium contains anode CO$_2$, PFC emissions, alumina refining thermal
+energy and mining/calcination/transport; for BF--BOF steel it contains coke, blast furnace
+and converter emissions (hence the small electricity term).
+
+\subsection{Grid intensity}
+National factors: India 0.71 (CEA CO$_2$ Baseline Database v19), world average 0.48,
+Europe 0.28 kg CO$_2$e/kWh. Additionally, ten \emph{indicative} Indian state factors
+(derived from CEA v19 plus state generation mix) drive the interactive state map, from
+Himachal 0.18 (hydro) to Chhattisgarh 0.92 (coal). The same smelter moves from
+$\approx$8.9 to $\approx$19.1 t CO$_2$e/t between Himachal and Odisha --- plant location is
+a climate decision.
+
+\subsection{Material Circularity Indicator}
+Following the Ellen MacArthur Foundation methodology (v3), with recycled feedstock fraction
+$F_r = r$, end-of-life collection rate $C_r$, recycling process efficiency $E_f = 0.9$ and
+utility factor $X = 1$ (mass normalised to $M=1$):
+
+\begin{align}
+V &= 1 - F_r, \qquad W_0 = 1 - C_r, \qquad W_c = C_r\,(1-E_f), \qquad W_f = \frac{F_r\,(1-E_f)}{E_f}\\
+W &= W_0 + \tfrac{1}{2}(W_f + W_c), \qquad
+\mathrm{LFI} = \frac{V + W}{2 + \tfrac{1}{2}(W_f - W_c)}, \qquad
+\mathrm{MCI} = \max\!\big(0,\; 1 - 0.9\,\mathrm{LFI}\big)
+\end{align}
+
+The UI renders MCI as an Ashoka-chakra gauge: $\mathrm{round}(24 \cdot \mathrm{MCI})$ of 24
+spokes fill green.
+
+\subsection{Monte Carlo uncertainty}
+Each displayed range is the p05--p95 interval of 1{,}000 simulation runs. Per run,
+independent lognormal noise (geometric standard deviation 1.1) multiplies the grid factor,
+electricity intensity and base emissions:
+$x' = x \cdot \exp\!\big(\ln(1.1)\, Z\big)$, $Z \sim \mathcal{N}(0,1)$ via Box--Muller.
+Water and acidification ranges derive from the GWP samples through their fixed ratios. The
+histogram is drawn from the same samples and is recomputed on every load.
+
+\subsection{$k$-NN parameter imputer}
+The ``estimated'' fields on the assessment page are predictions of a $k$-nearest-neighbours
+model, not hardcoded values.
+
+\begin{itemize}[leftmargin=1.4em, itemsep=1pt]
+  \item \textbf{Training data:} 500 rows generated from the engine's own physics with
+        $\pm 8\%$ noise (script \texttt{scripts/make\_training\_data.js}); regenerable at
+        any time.
+  \item \textbf{Features (normalised):} metal indicator, recycled content $r$, renewable
+        share $s$, grid factor.
+  \item \textbf{Prediction:} mean of the $k=7$ nearest neighbours (Euclidean distance) for
+        electricity and thermal intensity.
+  \item \textbf{Confidence:} $1 - \sigma/\mu$ over the neighbours, clamped to $[0.50, 0.99]$
+        --- it genuinely drops in uncertain regions (e.g.\ 94\% at pure primary aluminium
+        vs 78\% at a 50\% scrap blend).
+\end{itemize}
+
+The imputer is a suggestion layer: the engine itself always uses library physics values
+unless the user accepts or edits an estimate (auditable separation of AI and physics).
+Copper currently falls back to library defaults (model trained on Al/steel; retraining with
+copper is scheduled).
+
+\subsection{CBAM export-cost model}
+For EU-bound exports, annual CBAM exposure is estimated as
+\begin{equation}
+\mathrm{Cost} = \max\!\big(0,\; \mathrm{GWP}_t - b_m\big) \cdot \phi_y \cdot P_{\mathrm{ETS}}
+\cdot X_{\mathrm{EUR \to INR}} \cdot T
+\end{equation}
+with indicative EU benchmark $b_m$ (Al 6.0, steel 1.8 t CO$_2$e/t), phase-in factor
+$\phi_y$ per Regulation (EU) 2023/956 (2026: 2.5\%, 2027: 5\%, 2028: 10\%, 2029: 22.5\%,
+2030: 48.5\%, 2034: 100\%), adjustable ETS price $P_{\mathrm{ETS}}$ (default \texteuro 75/t)
+and export tonnage $T$. Example: a primary-aluminium smelter (16.6 t CO$_2$e/t) exporting
+10{,}000 t/yr faces $\approx$ Rs.~1.8 crore in 2026, rising to $\approx$ Rs.~35 crore
+by 2030. Copper is outside the current CBAM product scope; the tool states this instead of
+showing a cost.
+
+% ================================================================
+\section{Validation}
+
+Engine outputs are pinned to an expected-output table; any deviation is treated as a bug.
+All six presets sit inside published ranges (IAI, worldsteel, EF 3.1 summaries):
+
+\begin{center}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+\textbf{Preset (India grid)} & $r$ & $C_r$ & \textbf{GWP} & \textbf{Energy} & \textbf{Water} & \textbf{MCI} \\
+ & & & (t CO$_2$e/t) & (GJ/t) & (m$^3$/t) & \\
+\midrule
+Aluminium --- Primary  & 0.00 & 0.15 & 16.6 & 199  & 66   & 0.16 \\
+Aluminium --- Recycled & 1.00 & 0.70 & 0.92 & 16   & 3.7  & 0.83 \\
+Steel --- BF--BOF      & 0.00 & 0.25 & 2.19 & 22   & 8.7  & 0.20 \\
+Steel --- EAF          & 1.00 & 0.85 & 0.70 & 6.6  & 2.8  & 0.89 \\
+Copper --- Primary     & 0.00 & 0.30 & 4.24 & 62   & 17.0 & 0.22 \\
+Copper --- Recycled    & 1.00 & 0.80 & 1.14 & 15.3 & 4.6  & 0.87 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Hand check (Al primary): $14{,}500 \times 0.71 + 6{,}300 = 16{,}595$ kg $\approx 16.6$ t
+CO$_2$e/t --- inside the IAI-consistent 16--20 range for coal-heavy grids. The recycled
+route is $94\%$ lower, matching the widely cited $\approx 95\%$ saving. Reference ranges:
+recycled Al 0.5--1.5, BF--BOF 1.9--2.4, EAF 0.4--1.0 t CO$_2$e/t.
+
+Benchmarks shown in the ``Where you stand'' card (indicative): Al primary --- India average
+17.8, world best practice (hydro smelters) 5.5; steel BF--BOF --- India 2.55, best 1.8;
+copper primary --- India 4.6, best 3.0 t CO$_2$e/t.
+
+% ================================================================
+\section{Data Sources}
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Factor} & \textbf{Source} & \textbf{Year} \\
+\midrule
+India grid intensity & CEA CO$_2$ Baseline Database v19 & 2023 \\
+State grid intensities (indicative) & CEA v19 + state generation mix & 2023 \\
+World/EU grid intensity & IEA emission factors & 2023 \\
+Al smelting electricity, PFC, anode & International Aluminium Institute LCI & 2022 \\
+Alumina refining and mining & EF 3.1 / ELCD & 2022 \\
+Al remelting route & IDEMAT 2024, TU Delft & 2024 \\
+BF--BOF and EAF inventories & worldsteel LCI methodology & 2023 \\
+Copper routes (indicative) & EF 3.1 / IDEMAT 2024 & 2024 \\
+Transport factors & EF 3.1 & 2022 \\
+MCI methodology & Ellen MacArthur Foundation, MCI v3 & 2019 \\
+CBAM schedule and scope & Regulation (EU) 2023/956 & 2023 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Every factor is public and free --- the tool has \textbf{zero database licensing cost}, and
+each on-screen figure links back to its source (provenance table in the app and in the
+generated report).
+
+% ================================================================
+\section{Product Features (Prototype v1)}
+
+\begin{itemize}[leftmargin=1.4em, itemsep=1pt]
+  \item \textbf{Dashboard} with six preset scenarios and a saved-scenario library
+        (save/load/delete, persists locally).
+  \item \textbf{Assess} --- form + plain-English entry; interactive India state-grid map;
+        $k$-NN estimated fields with live confidence badges; every estimate overridable.
+  \item \textbf{Results} --- four KPI cards with Monte-Carlo p05--p95 ranges and histogram;
+        stage-contribution bar; material-flow Sankey with the recycling return loop; chakra
+        MCI gauge; benchmark strip; CBAM calculator; provenance table.
+  \item \textbf{Compare} --- locked linear baseline vs live circular scenario; three
+        circularity sliders; savings delta strip; recommendations that cite the current
+        numbers.
+  \item \textbf{Report} --- ISO-14044-style document (goal \& scope, inventory, results with
+        uncertainty, circularity, recommendations, sources, limitations); print-to-PDF.
+  \item \textbf{Hindi/English toggle} for the static UI ($\approx$54 strings; full
+        localisation planned).
+  \item Fully offline-capable: fonts, map and all data ship with the page.
+\end{itemize}
+
+% ================================================================
+\section{Limitations and Honest Caveats}
+
+\begin{enumerate}[leftmargin=1.6em, itemsep=1pt]
+  \item The engine is a factor model with fixed water/acidification ratios --- adequate for
+        route comparison, not for site permitting. The production design swaps in a full
+        matrix LCA (Brightway2.5).
+  \item State grid factors and copper/benchmark values are \emph{indicative}, clearly
+        labelled as such, pending plant-level data.
+  \item The $k$-NN imputer is trained on physics-generated (not measured) data; it
+        demonstrates the imputation architecture and honest confidence reporting rather
+        than field accuracy. Copper is not yet in the training set.
+  \item The plain-English parser is keyword-based in the prototype; the production build
+        uses an LLM parser with validation.
+  \item Cradle-to-gate only; use-phase and end-of-life stages are parameterised in the MCI
+        but not in the impact totals.
+\end{enumerate}
+
+% ================================================================
+\section{Roadmap (Full Build)}
+
+FastAPI + PostgreSQL backend; Brightway2.5 matrix engine; 100+ row cited factor library
+with regional fallback chains; LightGBM quantile imputer (p10/p50/p90) and surrogate model
+(target $R^2 > 0.95$, $<$20 ms); LLM scenario parser and grounded recommendations;
+Monte-Carlo with per-factor pedigree uncertainty; multi-user scenario storage; full Hindi
+localisation; validation notebook against 8--10 published studies. The complete engineering
+plan, interface contracts and per-module specifications are archived in the repository
+(\texttt{docs/archive/}).
+
+% ================================================================
+\section*{References}
+\begin{enumerate}[leftmargin=1.6em, itemsep=0pt]
+  \item ISO 14040/14044 --- Environmental management, LCA: principles and requirements. \url{https://www.iso.org}
+  \item Ellen MacArthur Foundation, \emph{Material Circularity Indicator methodology} (v3). \url{https://www.ellenmacarthurfoundation.org}
+  \item International Aluminium Institute --- LCI data and GHG pathways. \url{https://international-aluminium.org}
+  \item worldsteel --- Life Cycle Inventory methodology report. \url{https://worldsteel.org}
+  \item Central Electricity Authority --- CO$_2$ Baseline Database v19. \url{https://cea.nic.in}
+  \item EU Environmental Footprint EF 3.1 / ELCD. \url{https://eplca.jrc.ec.europa.eu}
+  \item IDEMAT 2024, TU Delft. \url{https://www.idematapp.com}
+  \item Indian Bureau of Mines --- Indian Minerals Yearbook. \url{https://ibm.gov.in}
+  \item Regulation (EU) 2023/956 (CBAM). \url{https://taxation-customs.ec.europa.eu}
+  \item NITI Aayog --- circular-economy strategy papers. \url{https://www.niti.gov.in}
+\end{enumerate}
+
+\vspace{10pt}
+\hrule
+\vspace{6pt}
+\begin{center}
+\small\color{inksoft}
+DhatuChakra $\cdot$ every tonne, accounted for $\cdot$ built for Smart India Hackathon, Problem \#48\\
+Working prototype: all formulas, data and the ML model in this document are implemented and verifiable in the repository.
+\end{center}
+
+\end{document}
