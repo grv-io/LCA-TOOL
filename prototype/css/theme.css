@@ -573,7 +573,19 @@ table.plain td.src { color: var(--navy); }
   }
   .app-page .site-header .wrap {
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
+    gap: 14px;
+  }
+  .app-page .brand {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 2px;
+    width: 100%;
+  }
+  .app-page .brand .dev {
+    width: 100%;
+    margin-left: 0;
+    text-align: center;
   }
   .app-page .nav {
     justify-content: space-between;
