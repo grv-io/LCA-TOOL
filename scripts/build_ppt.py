@@ -12,6 +12,8 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.oxml.ns import qn
 
+DOC_URL = "https://github.com/grv-io/LCA-TOOL/blob/main/docs/DhatuChakra_Documentation.pdf"
+REPO_URL = "https://github.com/grv-io/LCA-TOOL"
 TEMPLATE = r"C:\Users\Gaurav Agrawal\Downloads\SIH-IDEA-Presentation-Format.pptx"
 OUT = r"C:\Users\Gaurav Agrawal\OneDrive\Desktop\lca-tool\DhatuChakra_SIH_Idea.pptx"
 
@@ -48,6 +50,8 @@ def set_runs(para, parts, size=12, align=None, space_after=None):
     for text, st in parts:
         run = para.add_run()
         run.text = text
+        if st.get("link"):
+            run.hyperlink.address = st["link"]
         f = run.font
         f.name = st.get("font", BODY)
         f.size = Pt(st.get("size", size))
@@ -199,11 +203,18 @@ set_runs(p, [("AI-assisted life-cycle assessment & circularity engine for Indian
 b = box(s2, 8.15, 1.42, 4.78, 1.02, fill=NAVY_WASH, line=NAVY, line_w=1.0)
 tf = b.text_frame
 set_runs(tf.paragraphs[0], [("Working prototype — see it run", {"bold": True, "size": 11, "color": NAVY})], space_after=2)
-for lbl in ("Demo video:  <add link>", "Documentation:  <add link>"):
+_links2 = [
+    ("Demo video:  ", "<add link>", None),
+    ("Documentation:  ", "LCA-TOOL/docs · technical PDF", DOC_URL),
+    ("Code + prototype:  ", "github.com/grv-io/LCA-TOOL", REPO_URL),
+]
+for lead, val, url in _links2:
     p = tf.add_paragraph()
+    st2 = {"italic": url is None, "size": 10.5, "color": SAFFRON_DEEP if url else SOFT}
+    if url: st2["link"] = url
     set_runs(p, [("▸ ", {"color": SAFFRON_DEEP, "bold": True, "size": 10.5}),
-                 (lbl.split(":")[0] + ":  ", {"bold": True, "size": 10.5, "color": INK}),
-                 (lbl.split(":  ")[1], {"italic": True, "size": 10.5, "color": SOFT})], space_after=1)
+                 (lead, {"bold": True, "size": 10.5, "color": INK}),
+                 (val, st2)], space_after=1)
 
 b = box(s2, 0.4, 2.62, 6.1, 4.12, fill=WHITE, line=LINE, line_w=1)
 tf = b.text_frame
@@ -221,8 +232,8 @@ tf = b.text_frame
 heading(tf, "Innovation & uniqueness")
 bullets(tf, [
     ("Not a black box: ", "every figure traces to a cited public factor — source, year, region shown in-app"),
-    ("India-first data: ", "CEA grid intensity (0.71 kg CO₂/kWh), IBM Minerals Yearbook — global tools ignore Indian conditions"),
-    ("Uncertainty built in: ", "±9% ranges on every result; Monte Carlo (1,000 runs) in the full build"),
+    ("India-first: ", "clickable state-grid map (CEA-derived: Himachal 0.18 → Chhattisgarh 0.92 kg CO₂/kWh) + CBAM export cost in ₹ crore"),
+    ("Uncertainty built in: ", "real 1,000-run Monte Carlo in the prototype — p05–p95 range + histogram on every result"),
     ("Instant what-if: ", "surrogate model answers sliders in milliseconds — prototype already proves the UX"),
     ("₹0 data cost: ", "built entirely on free public inventories (IAI, worldsteel, EF 3.1, IDEMAT, US LCI)"),
 ], size=11.5, gap=6)
@@ -253,7 +264,7 @@ for lead, rest in stack:
                  (rest, {"size": 10.5, "color": INK})], space_after=6)
 p = tf.add_paragraph()
 set_runs(p, [("Prototype today: ", {"bold": True, "size": 10.5, "color": SAFFRON_DEEP}),
-             ("same formulas, client-side HTML/JS — runs offline, zero backend.", {"size": 10.5, "color": INK})])
+             ("client-side HTML/JS, offline — 3 metals, India state map, k-NN imputer (500 scenarios), 1,000-run Monte Carlo, CBAM, Hindi UI.", {"size": 10.5, "color": INK})])
 
 # ---- flow diagram
 t = txt(s3, 4.25, 1.42, 8.6, 0.35)
@@ -284,7 +295,7 @@ set_runs(tf.paragraphs[0], [("Factor library (India-first): ", {"bold": True, "s
 arrow(s3, 11.72, y1 + h1 + 0.03, w=0.26, h=1.60, direction="down", color=SOFT)
 
 y2, h2 = 4.55, 1.05
-diagram_box(s3, 10.4, y2, 2.45, h2, "Monte Carlo", "1,000 runs → ±9% uncertainty ranges", MUSTARD_WASH, RGBColor(0xC9, 0xA2, 0x27))
+diagram_box(s3, 10.4, y2, 2.45, h2, "Monte Carlo", "1,000 runs → p05–p95 ranges + histogram", MUSTARD_WASH, RGBColor(0xC9, 0xA2, 0x27))
 arrow(s3, 10.06, y2 + 0.38, direction="left")
 diagram_box(s3, 7.38, y2, 2.6, h2, "Results / tonne", "GWP · energy · water · acidification + MCI chakra", GREEN_WASH, GREEN)
 arrow(s3, 7.04, y2 + 0.38, direction="left")
@@ -293,7 +304,8 @@ diagram_box(s3, 4.25, y2, 2.7, h2, "Dashboard & report", "Sankey · compare slid
 t = txt(s3, 4.25, 5.85, 8.65, 0.9)
 tf = t.text_frame
 set_runs(tf.paragraphs[0], [("Working prototype (this exact methodology, client-side):  ", {"bold": True, "size": 11, "color": INK}),
-                            ("demo video — <add link>   ·   documentation — <add link>", {"italic": True, "size": 11, "color": SAFFRON_DEEP})])
+                            ("demo video — <add link>   ·   ", {"italic": True, "size": 11, "color": SAFFRON_DEEP}),
+                            ("technical documentation (PDF in repo)", {"size": 11, "color": SAFFRON_DEEP, "link": DOC_URL})])
 
 # ============================================================ SLIDE 4 — FEASIBILITY
 caption_pointer(s4, "Analysis of the feasibility of the idea  ·  Potential challenges and risks  ·  Strategies for overcoming these challenges")
@@ -304,7 +316,7 @@ heading(tf, "Why this is buildable")
 bullets(tf, [
     ("100% free data — ", "IAI, worldsteel, CEA, EF 3.1, IDEMAT, US LCI: no paid-licence blocker anywhere in the pipeline"),
     ("Already validated: ", "prototype outputs 16.6 / 0.92 / 2.19 / 0.70 t CO₂e/t (Al primary · Al recycled · BF-BOF · EAF) sit inside published ranges — IAI 16–20 & 0.5–1.5, worldsteel 1.9–2.4 & 0.4–1.0"),
-    ("Working prototype exists ", "— full calculation methodology runs client-side today; 4-week full-build plan is written"),
+    ("Working prototype live ", "— 3 metals, state-grid map, k-NN imputer, Monte Carlo, CBAM calculator, Hindi UI; 4-week full-build plan written"),
     ("ML needs no scarce dataset — ", "imputer & surrogate train on physics-generated scenarios from our own engine"),
 ], size=11.5, gap=8)
 
@@ -405,18 +417,25 @@ for i, (lead, rest) in enumerate(refs, 1):
 b = box(s6, 8.5, 1.48, 4.43, 2.5, fill=NAVY_WASH, line=NAVY, line_w=1.0)
 tf = b.text_frame
 heading(tf, "Our links", size=13)
-for lbl in ("Demo video", "Documentation", "Live prototype"):
+_links6 = [
+    ("Demo video", "<add link>", None),
+    ("Documentation (PDF)", "LCA-TOOL/docs/DhatuChakra_Documentation.pdf", DOC_URL),
+    ("Code + prototype", "github.com/grv-io/LCA-TOOL", REPO_URL),
+]
+for lbl, val, url in _links6:
     p = tf.add_paragraph()
-    set_runs(p, [("▸ ", {"color": SAFFRON_DEEP, "bold": True, "size": 11.5}),
-                 (lbl + ":  ", {"bold": True, "size": 11.5, "color": INK}),
-                 ("<add link>", {"italic": True, "size": 11.5, "color": SOFT})], space_after=5)
+    st6 = {"italic": url is None, "size": 11, "color": SAFFRON_DEEP if url else SOFT}
+    if url: st6["link"] = url
+    set_runs(p, [("▸ ", {"color": SAFFRON_DEEP, "bold": True, "size": 11}),
+                 (lbl + ":  ", {"bold": True, "size": 11, "color": INK}),
+                 (val, st6)], space_after=5)
 
 b = box(s6, 8.5, 4.2, 4.43, 2.58, fill=GREEN_WASH, line=GREEN, line_w=1.0)
 tf = b.text_frame
 heading(tf, "Reproducible by design", size=13, color=GREEN)
 p = tf.add_paragraph()
 set_runs(p, [("Every number in this deck — 16.6, 0.92, 2.19, 0.70 t CO₂e/t, MCI 0.16→0.83, 62% electricity share — "
-              "is computed from the sources listed and can be re-derived from our documentation.",
+              "is computed from the sources listed; formulas and validation are in the linked technical PDF.",
               {"size": 11, "color": INK})])
 
 # ============================================================ delete instructions slide 7
